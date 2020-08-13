@@ -8,9 +8,11 @@ import (
 )
 
 func main() {
-
 	leerEntrada()
 }
+
+//cuando analice texto de entrada se iran guardando aca
+var listaComandos []string
 
 func leerEntrada() {
 
@@ -35,6 +37,8 @@ func leerEntrada() {
 
 		if enviar == true { //para empezar analizar
 			analizador(concatenar)
+			imprimirListaComandos() //************************************************************
+			vaciarListaComandos()
 			concatenar = ""
 			enviar = false
 		}
@@ -70,7 +74,7 @@ func analizador(cadena string) {
 				estado = 1
 			} else if examinarAsci == 34 { // ""
 				caracter = caracter + string(examinar)
-				estado = 1
+				estado = 4 //entra en estado de rutas
 			} else if examinarAsci == 46 { // .
 				caracter = caracter + string(examinar)
 				estado = 1
@@ -84,6 +88,7 @@ func analizador(cadena string) {
 				caracter = caracter + string(examinar)
 				estado = 2
 			}
+			break
 		case 1:
 			if (examinarAsci > 64 && examinarAsci < 91) || (examinarAsci > 96 && examinarAsci < 123) { //letras
 				caracter = caracter + string(examinar)
@@ -109,6 +114,7 @@ func analizador(cadena string) {
 				i = i - 1
 				estado = 0
 			}
+			break
 		case 2:
 			if examinarAsci == 45 { // -
 				caracter = caracter + string(examinar)
@@ -122,6 +128,33 @@ func analizador(cadena string) {
 				i = i - 1
 				estado = 0
 			}
+			break
+		case 4:
+			if (examinarAsci > 64 && examinarAsci < 91) || (examinarAsci > 96 && examinarAsci < 123) { //letras
+				caracter = caracter + string(examinar)
+				estado = 4
+			} else if examinarAsci > 47 && examinarAsci < 58 { // numeros
+				caracter = caracter + string(examinar)
+				estado = 4
+			} else if examinarAsci == 47 { // /
+				caracter = caracter + string(examinar)
+				estado = 4
+			} else if examinarAsci == 34 { // "
+				caracter = caracter + string(examinar) //concateno
+				estado = 4
+			} else if examinarAsci == 46 { // .
+				caracter = caracter + string(examinar)
+				estado = 4
+			} else if examinarAsci == 32 { //espacio en blanco
+				caracter = caracter + " "
+				estado = 4
+			} else {
+				analizador2(caracter)
+				caracter = ""
+				i = i - 1
+				estado = 0
+			}
+			break
 
 		}
 	}
@@ -133,5 +166,15 @@ func analizador(cadena string) {
 }
 
 func analizador2(cadena string) {
-	fmt.Println(cadena)
+	listaComandos = append(listaComandos, cadena)
+}
+
+func imprimirListaComandos() {
+	for i := 0; i < len(listaComandos); i++ {
+		fmt.Println(listaComandos[i])
+	}
+}
+
+func vaciarListaComandos() {
+	listaComandos = nil
 }
