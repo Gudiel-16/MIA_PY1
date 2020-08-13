@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -11,9 +12,10 @@ func main() {
 	leerEntrada()
 }
 
-//cuando analice texto de entrada se iran guardando aca
+//cuando analice texto de entrada se iran guardando aca los comandos
 var listaComandos []string
 
+//leera los comandos de entrada
 func leerEntrada() {
 
 	var enviar bool = false
@@ -23,21 +25,22 @@ func leerEntrada() {
 		entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
 		eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
 
-		if strings.HasSuffix(eleccion, "\\*") { //si al final termina con \*
+		if strings.HasSuffix(eleccion, "\\*") { //si al final termina con \* (seguira concatenando)
 			concatenar = concatenar + eleccion
 			enviar = false
-		} else {
+		} else { //cuando la ultima linea no tengo al final \* entonces ejecutara
 			concatenar = concatenar + eleccion
 			enviar = true
 		}
 
-		if eleccion == "exit" { //para salir
+		if eleccion == "exit" { //para salir de ejecucion
 			break
 		}
 
 		if enviar == true { //para empezar analizar
 			analizador(concatenar)
 			imprimirListaComandos() //************************************************************
+			logica()
 			vaciarListaComandos()
 			concatenar = ""
 			enviar = false
@@ -165,6 +168,7 @@ func analizador(cadena string) {
 
 }
 
+//ira guardando comandos en la lista
 func analizador2(cadena string) {
 	listaComandos = append(listaComandos, cadena)
 }
@@ -177,4 +181,41 @@ func imprimirListaComandos() {
 
 func vaciarListaComandos() {
 	listaComandos = nil
+}
+
+func logica() {
+	for i := 0; i < len(listaComandos); i++ {
+		if strings.ToLower(listaComandos[i]) == "exec" {
+			execComando(i)
+		}
+	}
+}
+
+//recibe el parametro index, que es el indice por donde actualmente se esta
+func execComando(index int) {
+
+	for i := index; i < len(listaComandos); i++ {
+		if strings.ToLower(listaComandos[i]) == "path" { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				ruta := listaComandos[i+2]     //ruta
+				ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
+				leerArchivoExec(ruta2)         //funcion que leera el archivo
+			} else {
+				fmt.Println("/n---> Se ha producido un error con el comando 'exec'/n")
+			}
+		}
+	}
+}
+
+func leerArchivoExec(ruta string) {
+	b, err := ioutil.ReadFile(ruta) // just pass the file name, ej. /home/gudiel/z.txt
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	fmt.Println(b) // imprimir contenido en'bytes'
+
+	str := string(b) // convertir a 'string'
+
+	fmt.Println(str)
 }
