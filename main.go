@@ -15,7 +15,7 @@ func main() {
 //cuando analice texto de entrada se iran guardando aca los comandos
 var listaComandos []string
 
-//leera los comandos de entrada
+//leera los comandos de entrada (los que escribe el usuario)
 func leerEntrada() {
 
 	var enviar bool = false
@@ -39,14 +39,13 @@ func leerEntrada() {
 
 		if enviar == true { //para empezar analizar
 			analizador(concatenar)
-			imprimirListaComandos() //************************************************************
+			//imprimirListaComandos() //************************************************************
 			logica()
 			vaciarListaComandos()
 			concatenar = ""
 			enviar = false
 		}
 	}
-
 }
 
 func analizador(cadena string) {
@@ -197,25 +196,73 @@ func execComando(index int) {
 	for i := index; i < len(listaComandos); i++ {
 		if strings.ToLower(listaComandos[i]) == "path" { //cuando encuentre palabra reservada path
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
-				ruta := listaComandos[i+2]     //ruta
-				ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
-				leerArchivoExec(ruta2)         //funcion que leera el archivo
+				ruta := listaComandos[i+2]        //ruta
+				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
+					ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
+					leerArchivoExec(ruta2)         //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					leerArchivoExec(ruta)
+				}
 			} else {
-				fmt.Println("/n---> Se ha producido un error con el comando 'exec'/n")
+				fmt.Println("\n---> Se ha producido un error con el comando 'exec'")
 			}
 		}
 	}
 }
 
 func leerArchivoExec(ruta string) {
-	b, err := ioutil.ReadFile(ruta) // just pass the file name, ej. /home/gudiel/z.txt
+	fmt.Println("")
+	texto, err := ioutil.ReadFile(ruta) // just pass the file name, ej. /home/gudiel/z.txt
 	if err != nil {
 		fmt.Print(err)
 	}
 
-	fmt.Println(b) // imprimir contenido en'bytes'
+	//fmt.Println(b)   // imprimir contenido en'bytes'
+	str := string(texto) // convertir a 'string'
+	//fmt.Println(str)
+	lecturaLineaLineaDeArchivo(str)
+}
 
-	str := string(b) // convertir a 'string'
+func lecturaLineaLineaDeArchivo(texto string) {
+	var estado int = 0
+	var examinarAsci int = 0
+	var caracteres string = "" //ira concantenando carecteres de linea actual
+	//var comandos string = ""   // sera la linea o lineas de comandos
 
-	fmt.Println(str)
+	for i := 0; i < len(texto); i++ {
+		examinar := texto[i]         //caracter actual de la cadena
+		examinarAsci = int(examinar) //numero asci del caracter actual
+
+		switch estado {
+		case 0:
+			if examinarAsci == 10 { //salto de linea, quiere decir que finalizo una linea de comandos
+
+				//mt.Println(caracteres)
+
+				if strings.Contains(caracteres, "pause") {
+					vaciarListaComandos() //al principio porque el usuario al inicio ejecuta un exec, entonces se vacia para que no entre en ciclo infinito
+					analizador(caracteres)
+					imprimirListaComandos()
+					logica()
+					vaciarListaComandos()
+					caracteres = ""
+					fmt.Println("PAUSE: PRECIOSE PARA CONTINUAR....")
+					bufio.NewReader(os.Stdin).ReadBytes('\n')
+				}
+
+			} else { //ira concatenando cualquier cosa que no sea salto de linea
+				caracteres = caracteres + string(examinar)
+			}
+		}
+	}
+
+	//para que al final envie los ultimos comandos, (ya que de ultimo no abra un proximo pause)
+	vaciarListaComandos() //al principio porque el usuario al inicio ejecuta un exec, entonces se vacia para que no entre en ciclo infinito
+	analizador(caracteres)
+	imprimirListaComandos()
+	logica()
+	vaciarListaComandos()
+	caracteres = ""
+	fmt.Println("PAUSE: PRECIOSE PARA CONTINUAR....")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
