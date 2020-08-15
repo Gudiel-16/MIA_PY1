@@ -2,11 +2,16 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -267,7 +272,7 @@ func lecturaLineaLineaDeArchivo(texto string) {
 					//fmt.Println(caracteres)
 					vaciarListaComandos() //al principio porque el usuario al inicio ejecuta un exec, entonces se vacia para que no entre en ciclo infinito
 					analizador(caracteres)
-					imprimirListaComandos()
+					//imprimirListaComandos()
 					logica()
 					vaciarListaComandos()
 					caracteres = ""
@@ -284,7 +289,7 @@ func lecturaLineaLineaDeArchivo(texto string) {
 	//para que al final envie los ultimos comandos, (ya que de ultimo no abra un proximo pause)
 	vaciarListaComandos() //al principio porque el usuario al inicio ejecuta un exec, entonces se vacia para que no entre en ciclo infinito
 	analizador(caracteres)
-	imprimirListaComandos()
+	//imprimirListaComandos()
 	logica()
 	vaciarListaComandos()
 	caracteres = ""
@@ -296,21 +301,17 @@ func lecturaLineaLineaDeArchivo(texto string) {
 //MKDISK
 func mkdiskComando(index int) {
 
-	var size uint64 = 0
+	var size int = 0
 	path := ""
 	name := ""
-	var unit byte = 'm'
-	/*t := time.Now()
-	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second())*/
+	var unit string = "m"
 
 	for i := index; i < len(listaComandos); i++ {
 
 		if strings.ToLower(listaComandos[i]) == "size" {
-			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -size->
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
-				size = uint64(tam)
+				size = tam
 				if err != nil {
 					fmt.Print("\nDebe ingresar un numero en size de MKDISK")
 				}
@@ -332,27 +333,95 @@ func mkdiskComando(index int) {
 				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'path'")
 			}
 		} else if strings.ToLower(listaComandos[i]) == "name" {
-			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				name = listaComandos[i+2] //name
 			} else {
 				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'name'")
 			}
 		} else if strings.ToLower(listaComandos[i]) == "unit" {
-			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
-				cad := listaComandos[i+2] //toma el string
-				unit = cad[0]             //extraigo el caracter
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				unit = listaComandos[i+2] //toma el string
 			} else {
-				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'name'")
+				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'unit'")
 			}
 		}
 	}
 
-	crearArchivo(uint64(size), path, name, unit)
+	crearArchivo(size, path, name, unit)
 
 }
 
-func crearArchivo(size uint64, path string, name string, unit byte) {
+func crearArchivo(size int, path string, name string, unit string) {
 
+	//hacemos las operaciones para definir el tamanio
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		size = size * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		size = size * 1024 * 1024
+	}
+
+	ruta := path + name //concatenamos la ruta y el nombre del archivo
+	file, err := os.Create(ruta)
+	defer file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//creamos una variable que sera un 0
+	var otro int8 = 0
+	s := &otro
+
+	// --------------------------------DEFINIMOS EL TAMANIO DE NUESTRO ARCHIVO-------------------------------- //
+	//Escribimos un 0 en el inicio del archivo
+	var binario bytes.Buffer
+	binary.Write(&binario, binary.BigEndian, s)
+	escribirBytes(file, binario.Bytes())
+
+	//Nos posicionamos en la ultima posicion
+	file.Seek(int64(size-1), 0) // segundo parametro: 0, 1, 2.     0 -> Inicio, 1-> desde donde esta el puntero, 2 -> Del fin para atras
+	//Escribimos un 0 al final del archivo.
+	var binario2 bytes.Buffer
+	binary.Write(&binario2, binary.BigEndian, s)
+	escribirBytes(file, binario2.Bytes())
+
+	//-------------------------------------------------------------------------------------------------------------//
+
+	//Escribimos nuestro struct (MBR) en el inicio del archivo
+	file.Seek(0, 0) // nos posicionamos en el inicio del archivo.
+
+	//Asignamos valores a los atributos del struct.
+	disco := mbr{}
+
+	//tamanio disco
+	disco.tamanio = uint64(size)
+
+	t := time.Now()
+	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())
+
+	// Igualar cadenas a array de bytes (array de chars)
+	copy(disco.fecha[:], fecha)
+
+	//numero de asignacion aleatorio
+	disco.numAsignacion = uint64(rand.Intn(100))
+
+	s1 := &disco
+
+	//Escribimos struct (MBR)
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s1)
+	escribirBytes(file, binario3.Bytes())
+
+}
+
+//Método para escribir en un archivo
+func escribirBytes(file *os.File, bytes []byte) {
+	_, err := file.Write(bytes)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 //-------------------------------FIN MKDISK-------------------------------//
