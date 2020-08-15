@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -14,6 +15,14 @@ func main() {
 
 //cuando analice texto de entrada se iran guardando aca los comandos
 var listaComandos []string
+
+//mbr que tendra cada archivo creado
+type mbr struct {
+	tamanio       uint64
+	fecha         [20]byte
+	numAsignacion uint64
+	particiones   []byte
+}
 
 //leera los comandos de entrada (los que escribe el usuario)
 func leerEntrada() {
@@ -89,6 +98,8 @@ func analizador(cadena string) {
 			} else if examinarAsci == 62 { // >
 				caracter = caracter + string(examinar)
 				estado = 2
+			} else if examinarAsci == 35 { // #
+				estado = 3 //pasa a estado de comentario
 			}
 			break
 		case 1:
@@ -130,6 +141,15 @@ func analizador(cadena string) {
 				i = i - 1
 				estado = 0
 			}
+			break
+		case 3:
+			if examinarAsci == 10 { //salto de linea
+				//i = i - 1
+				estado = 0
+			} else {
+				estado = 3
+			}
+
 			break
 		case 4:
 			if (examinarAsci > 64 && examinarAsci < 91) || (examinarAsci > 96 && examinarAsci < 123) { //letras
@@ -186,10 +206,13 @@ func logica() {
 	for i := 0; i < len(listaComandos); i++ {
 		if strings.ToLower(listaComandos[i]) == "exec" {
 			execComando(i)
+		} else if strings.ToLower(listaComandos[i]) == "mkdisk" {
+			mkdiskComando(i)
 		}
 	}
 }
 
+//--------------------------------INICIO EXEC-------------------------------//
 //recibe el parametro index, que es el indice por donde actualmente se esta
 func execComando(index int) {
 
@@ -210,6 +233,7 @@ func execComando(index int) {
 	}
 }
 
+//lee el texto que contiene un archivo
 func leerArchivoExec(ruta string) {
 	fmt.Println("")
 	texto, err := ioutil.ReadFile(ruta) // just pass the file name, ej. /home/gudiel/z.txt
@@ -223,6 +247,7 @@ func leerArchivoExec(ruta string) {
 	lecturaLineaLineaDeArchivo(str)
 }
 
+//ira ejecutando los comandos de las lineas leidas
 func lecturaLineaLineaDeArchivo(texto string) {
 	var estado int = 0
 	var examinarAsci int = 0
@@ -236,10 +261,10 @@ func lecturaLineaLineaDeArchivo(texto string) {
 		switch estado {
 		case 0:
 			if examinarAsci == 10 { //salto de linea, quiere decir que finalizo una linea de comandos
+				caracteres = caracteres + string(examinar)
 
-				//mt.Println(caracteres)
-
-				if strings.Contains(caracteres, "pause") {
+				if strings.Contains(strings.ToLower(caracteres), "pause") {
+					//fmt.Println(caracteres)
 					vaciarListaComandos() //al principio porque el usuario al inicio ejecuta un exec, entonces se vacia para que no entre en ciclo infinito
 					analizador(caracteres)
 					imprimirListaComandos()
@@ -263,6 +288,71 @@ func lecturaLineaLineaDeArchivo(texto string) {
 	logica()
 	vaciarListaComandos()
 	caracteres = ""
-	fmt.Println("PAUSE: PRECIOSE PARA CONTINUAR....")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
+
+//--------------------------------FIN EXEC----------------------------//
+
+//-------------------------------INICIO MKDISK-------------------------------//
+//MKDISK
+func mkdiskComando(index int) {
+
+	var size uint64 = 0
+	path := ""
+	name := ""
+	var unit byte = 'm'
+	/*t := time.Now()
+	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())*/
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.ToLower(listaComandos[i]) == "size" {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
+				size = uint64(tam)
+				if err != nil {
+					fmt.Print("\nDebe ingresar un numero en size de MKDISK")
+				}
+
+			} else {
+				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'Size'")
+			}
+
+		} else if strings.ToLower(listaComandos[i]) == "path" { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				ruta := listaComandos[i+2]        //ruta
+				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
+					ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
+					path = ruta2                   //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					path = ruta
+				}
+			} else {
+				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'path'")
+			}
+		} else if strings.ToLower(listaComandos[i]) == "name" {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				name = listaComandos[i+2] //name
+			} else {
+				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'name'")
+			}
+		} else if strings.ToLower(listaComandos[i]) == "unit" {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				cad := listaComandos[i+2] //toma el string
+				unit = cad[0]             //extraigo el caracter
+			} else {
+				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'name'")
+			}
+		}
+	}
+
+	crearArchivo(uint64(size), path, name, unit)
+
+}
+
+func crearArchivo(size uint64, path string, name string, unit byte) {
+
+}
+
+//-------------------------------FIN MKDISK-------------------------------//
