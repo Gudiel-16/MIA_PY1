@@ -35,6 +35,7 @@ func leerEntrada() {
 	var enviar bool = false
 	var concatenar string = ""
 	for true {
+		fmt.Print("\n[ nuevo comando ] ")
 		lectura := bufio.NewReader(os.Stdin)
 		entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
 		eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
@@ -209,10 +210,14 @@ func vaciarListaComandos() {
 
 func logica() {
 	for i := 0; i < len(listaComandos); i++ {
-		if strings.ToLower(listaComandos[i]) == "exec" {
+		if strings.Compare(strings.ToLower(listaComandos[i]), "exec") == 0 {
 			execComando(i)
-		} else if strings.ToLower(listaComandos[i]) == "mkdisk" {
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mkdisk") == 0 {
 			mkdiskComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "rmdisk") == 0 {
+			rmdiskComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "fdisk") == 0 {
+			fdiskComando(i)
 		}
 	}
 }
@@ -222,7 +227,7 @@ func logica() {
 func execComando(index int) {
 
 	for i := index; i < len(listaComandos); i++ {
-		if strings.ToLower(listaComandos[i]) == "path" { //cuando encuentre palabra reservada path
+		if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
 				ruta := listaComandos[i+2]        //ruta
 				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
@@ -232,7 +237,7 @@ func execComando(index int) {
 					leerArchivoExec(ruta)
 				}
 			} else {
-				fmt.Println("\n---> Se ha producido un error con el comando 'exec'")
+				fmt.Print("\n[ ERROR: mal formato del comando 'exec' ]")
 			}
 		}
 	}
@@ -240,7 +245,6 @@ func execComando(index int) {
 
 //lee el texto que contiene un archivo
 func leerArchivoExec(ruta string) {
-	fmt.Println("")
 	texto, err := ioutil.ReadFile(ruta) // just pass the file name, ej. /home/gudiel/z.txt
 	if err != nil {
 		fmt.Print(err)
@@ -276,7 +280,7 @@ func lecturaLineaLineaDeArchivo(texto string) {
 					logica()
 					vaciarListaComandos()
 					caracteres = ""
-					fmt.Println("PAUSE: PRECIOSE PARA CONTINUAR....")
+					fmt.Print("\n[ pause: presione 'enter' ]")
 					bufio.NewReader(os.Stdin).ReadBytes('\n')
 				}
 
@@ -298,7 +302,7 @@ func lecturaLineaLineaDeArchivo(texto string) {
 //--------------------------------FIN EXEC----------------------------//
 
 //-------------------------------INICIO MKDISK-------------------------------//
-//MKDISK
+//MKDISK (crea disco duro)
 func mkdiskComando(index int) {
 
 	var size int = 0
@@ -308,19 +312,19 @@ func mkdiskComando(index int) {
 
 	for i := index; i < len(listaComandos); i++ {
 
-		if strings.ToLower(listaComandos[i]) == "size" {
+		if strings.Compare(strings.ToLower(listaComandos[i]), "size") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -size->
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
 				size = tam
 				if err != nil {
-					fmt.Print("\nDebe ingresar un numero en size de MKDISK")
+					fmt.Print("\n[ ERROR: Debe ingresar un numero en size de MKDISK ]")
 				}
 
 			} else {
-				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'Size'")
+				fmt.Print("\n[ ERROR: comando 'MKDISK' -> 'Size' ]")
 			}
 
-		} else if strings.ToLower(listaComandos[i]) == "path" { //cuando encuentre palabra reservada path
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
 				ruta := listaComandos[i+2]        //ruta
 				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
@@ -330,19 +334,19 @@ func mkdiskComando(index int) {
 					path = ruta
 				}
 			} else {
-				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'path'")
+				fmt.Print("\n[ ERROR: comando 'MKDISK' -> 'path' ]")
 			}
-		} else if strings.ToLower(listaComandos[i]) == "name" {
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				name = listaComandos[i+2] //name
 			} else {
-				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'name'")
+				fmt.Print("\n[ ERROR: comando 'MKDISK' -> 'name' ]")
 			}
-		} else if strings.ToLower(listaComandos[i]) == "unit" {
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unit") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				unit = listaComandos[i+2] //toma el string
 			} else {
-				fmt.Println("\n---> Se ha producido un error con el comando 'MKDISK' -> 'unit'")
+				fmt.Print("\n[ ERROR:  Se ha producido un error con el comando 'MKDISK' -> 'unit' ]")
 			}
 		}
 	}
@@ -425,3 +429,177 @@ func escribirBytes(file *os.File, bytes []byte) {
 }
 
 //-------------------------------FIN MKDISK-------------------------------//
+
+//-------------------------------INICIO RMDISK-------------------------------//
+//RMDISK (elimina un archivo)
+func rmdiskComando(index int) {
+	for i := index; i < len(listaComandos); i++ {
+		if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				ruta := listaComandos[i+2]        //ruta
+				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
+					ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
+					os.Remove(ruta2)
+				} else { //sino tiene comillas manda la ruta normal
+					os.Remove(ruta)
+				}
+			} else {
+				fmt.Print("\n[ ERROR: formato del comando 'rmdisk' ]")
+			}
+		}
+	}
+}
+
+//-------------------------------FIN RMDISK-------------------------------//
+
+//-------------------------------INICIO FDISK-------------------------------//
+//FDISK (administra particiones del archivo, ajustes)
+func fdiskComando(index int) {
+
+	size := 0
+	unit := "k"
+	path := ""
+	typee := "p"
+	fit := "wf"
+	deletee := "fast"
+	name := ""
+	add := 0
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "size") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -size->
+				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
+				size = tam
+				if err != nil {
+					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
+				}
+
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'size' ]")
+			}
+
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unit") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				unit = listaComandos[i+2] //toma el string
+			} else {
+				fmt.Print("\n[ ERROR:  Se ha producido un error con el comando 'FDISK' -> 'unit' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				ruta := listaComandos[i+2]        //ruta
+				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
+					ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
+					path = ruta2                   //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					path = ruta
+				}
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'path' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "type") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				typee = listaComandos[i+2] //name
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'type' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "fit") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				fit = listaComandos[i+2] //name
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'fit' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "delete") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				deletee = listaComandos[i+2] //name
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'delete' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				name = listaComandos[i+2] //name
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'name' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "add") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
+				add = tam
+				if err != nil {
+					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
+				}
+			} else {
+				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'add' ]")
+			}
+		}
+	}
+
+	crearParticion(size, unit, path, typee, fit, deletee, name, add)
+}
+
+func crearParticion(size int, unit string, path string, typee string, fit string, deletee string, name string, add int) {
+	fmt.Println("creando particion..")
+}
+
+//-------------------------------FIN FDISK-------------------------------//
+
+//-------------------------------INICIO MOUNT-------------------------------//
+func mountComando(index int) {
+	path := ""
+	name := ""
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				ruta := listaComandos[i+2]        //ruta
+				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
+					ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
+					path = ruta2                   //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					path = ruta
+				}
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MOUNT' -> 'path' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				name = listaComandos[i+2] //name
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MOUNT' -> 'name' ]")
+			}
+		}
+	}
+
+	montarParticion(path, name)
+}
+
+func montarParticion(path string, name string) {
+
+}
+
+//-------------------------------FIN MOUNT-------------------------------//
+
+//-------------------------------INICIO UNMOUNT-------------------------------//
+func unmountComando(index int) {
+	idn := ""
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "idn") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				idn = listaComandos[i+2] //name
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MOUNT' -> 'name' ]")
+			}
+		}
+	}
+
+	desmontarParticion(idn)
+}
+
+func desmontarParticion(path string) {
+
+}
+
+//-------------------------------FIN MOUNT-------------------------------//
