@@ -684,7 +684,7 @@ func validarQueTengaEspacioElDisco(path string, sizeParticion int64, unit string
 	//recorro para sumar todos los byte de las particiones
 	for i := 0; i < 4; i++ {
 		actual := misParticiones[i]
-		if actual.Tamanio == 0 {
+		if actual.Tamanio != 0 {
 			contadorSize = contadorSize + int64(actual.Tamanio)
 		}
 	}
@@ -694,7 +694,6 @@ func validarQueTengaEspacioElDisco(path string, sizeParticion int64, unit string
 
 	//si hay espacio aun
 	if sizeParticion <= espacioDisponible {
-		fmt.Println(espacioDisponible)
 		return true //retorna que hay espacio
 	}
 
@@ -737,7 +736,10 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 	//accedo a las particiones
 	misParticiones := m.Particiones
-	fmt.Println(misParticiones[0])
+	fmt.Println("arr pos 0 : ", misParticiones[0].Tamanio)
+	fmt.Println("arr pos 1 : ", misParticiones[1].Tamanio)
+	fmt.Println("arr pos 2 : ", misParticiones[2].Tamanio)
+	fmt.Println("arr pos 3 : ", misParticiones[3].Tamanio)
 
 	contador := 0
 
@@ -752,10 +754,12 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 	//se inserta despues del MBR
 	if contador == 0 {
+		fmt.Println("PRIMARA POSICION")
 		//creo particion primaria
 		particionPrimariaNew := NodoParticion{}
 
 		//agrego atributos a particion primaria
+		particionPrimariaNew.Tamanio = sizePart
 		particionPrimariaNew.Estado = 's'
 		particionPrimariaNew.TipoParticion = typee[0]
 		copy(particionPrimariaNew.TipoAjuste[:], fit)
@@ -763,9 +767,7 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 		//inserto particion
 		misParticiones[contador] = particionPrimariaNew
-		fmt.Println("ya agregada")
 		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
-		fmt.Println(misParticiones[0])
 
 		//pueden ser en la posicion 1, 2, 3
 	} else if contador > 0 {
@@ -773,6 +775,7 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 		particionPrimariaNew := NodoParticion{}
 
 		//agrego atributos a particion primaria
+		particionPrimariaNew.Tamanio = sizePart
 		particionPrimariaNew.Estado = 's'
 		particionPrimariaNew.TipoParticion = typee[0]
 		copy(particionPrimariaNew.TipoAjuste[:], fit)
@@ -785,20 +788,27 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 		//inserto particion
 		misParticiones[contador] = particionPrimariaNew
-		fmt.Println("ya agregada")
 		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
-		fmt.Println(misParticiones[0])
 	}
 
-	/*
-		m.Particiones = misParticiones
-		file.Seek(0, 0)
-		s1 := &m
+	fmt.Println("arr pos 0 : ", misParticiones[0].Tamanio)
+	fmt.Println("arr pos 1 : ", misParticiones[1].Tamanio)
+	fmt.Println("arr pos 2 : ", misParticiones[2].Tamanio)
+	fmt.Println("arr pos 3 : ", misParticiones[3].Tamanio)
 
-		//Escribimos struct (MBR)
-		var binario3 bytes.Buffer
-		binary.Write(&binario3, binary.BigEndian, s1)
-		escribirBytes(file, binario3.Bytes())*/
+	//las particiones actuales en el disco se encuentran en 'm.particiones'
+	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
+	//entonces 'misParticiones' tiene las actuales, mas la nueva que se le inserto
+	//por eso se iguala de nuevo, para que em 'm.Particiones' se guarden particiones ya actualizadas
+	m.Particiones = misParticiones
+
+	file.Seek(0, 0)
+	s1 := &m
+
+	//Reescribimos struct (MBR)
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s1)
+	escribirBytes(file, binario3.Bytes())
 
 }
 
