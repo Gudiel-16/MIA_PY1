@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 )
 
 func main() {
@@ -21,13 +22,39 @@ func main() {
 //cuando analice texto de entrada se iran guardando aca los comandos
 var listaComandos []string
 
+//--------------------------------ESTRUCTURAS-------------------------------//
+
 //mbr que tendra cada archivo creado
 type mbr struct {
-	tamanio       uint64
-	fecha         [20]byte
-	numAsignacion uint64
-	particiones   []byte
+	Tamanio       int64
+	Fecha         [20]byte
+	NumAsignacion int64
+	Particiones   [4]NodoParticion
 }
+
+//NodoParticion ,
+type NodoParticion struct {
+	Estado             byte
+	TipoParticion      byte
+	TipoAjuste         [2]byte
+	Tamanio            int64
+	Name               [16]byte
+	ParticionesLogicas [5]NodoParticionLogica //sera funcional solo para las extendidas
+	Start              int64                  //byte donde inicia la particion
+}
+
+//NodoParticionLogica ,
+type NodoParticionLogica struct {
+	Estado        byte
+	TipoParticion byte
+	TipoAjuste    [2]byte
+	Tamanio       int64
+	Name          [16]byte
+	Start         int64 //byte donde inicia la particion
+	End           int64 //byte donde termina la particion
+}
+
+//--------------------------------FINAL ESTRUCTURAS-------------------------------//
 
 //leera los comandos de entrada (los que escribe el usuario)
 func leerEntrada() {
@@ -35,7 +62,7 @@ func leerEntrada() {
 	var enviar bool = false
 	var concatenar string = ""
 	for true {
-		fmt.Print("\n[ nuevo comando ] ")
+		fmt.Print("\n[ nuevo comando ]% ")
 		lectura := bufio.NewReader(os.Stdin)
 		entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
 		eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
@@ -355,6 +382,7 @@ func mkdiskComando(index int) {
 
 }
 
+//crea el archivo (disco)
 func crearArchivo(size int, path string, name string, unit string) {
 
 	//hacemos las operaciones para definir el tamanio
@@ -397,7 +425,7 @@ func crearArchivo(size int, path string, name string, unit string) {
 	disco := mbr{}
 
 	//tamanio disco
-	disco.tamanio = uint64(size)
+	disco.Tamanio = int64(size)
 
 	t := time.Now()
 	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
@@ -405,10 +433,10 @@ func crearArchivo(size int, path string, name string, unit string) {
 		t.Hour(), t.Minute(), t.Second())
 
 	// Igualar cadenas a array de bytes (array de chars)
-	copy(disco.fecha[:], fecha)
+	copy(disco.Fecha[:], fecha)
 
 	//numero de asignacion aleatorio
-	disco.numAsignacion = uint64(rand.Intn(100))
+	disco.NumAsignacion = int64(rand.Intn(100))
 
 	s1 := &disco
 
@@ -456,21 +484,20 @@ func rmdiskComando(index int) {
 //FDISK (administra particiones del archivo, ajustes)
 func fdiskComando(index int) {
 
-	size := 0
+	var size int64 = 0
 	unit := "k"
 	path := ""
 	typee := "p"
 	fit := "wf"
-	deletee := "fast"
+	deletee := ""
 	name := ""
 	add := 0
 
 	for i := index; i < len(listaComandos); i++ {
-
 		if strings.Compare(strings.ToLower(listaComandos[i]), "size") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -size->
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
-				size = tam
+				size = int64(tam)
 				if err != nil {
 					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
 				}
@@ -533,12 +560,258 @@ func fdiskComando(index int) {
 			}
 		}
 	}
-
-	crearParticion(size, unit, path, typee, fit, deletee, name, add)
+	operacionFdisk(size, unit, path, typee, fit, deletee, name, add)
 }
 
-func crearParticion(size int, unit string, path string, typee string, fit string, deletee string, name string, add int) {
-	fmt.Println("creando particion..")
+func operacionFdisk(size int64, unit string, path string, typee string, fit string, deletee string, name string, add int) {
+	if strings.Compare(deletee, "") != 0 { //si hay que eliminar una particion
+
+	} else if add != 0 { //agregar o quitar espacio de particion
+
+	} else { //crea una particion
+		agregarParticion(size, unit, path, typee, fit, name)
+	}
+}
+
+func agregarParticion(size int64, unit string, path string, typee string, fit string, name string) {
+
+	if validarLimiteDeParticionesEnDisco(path) { //si se puede agregar otra particion
+		if strings.Compare(strings.ToLower(typee), "p") == 0 { //si es primaria
+			if validarQueTengaEspacioElDisco(path, size, unit) { //si el disco aun tiene espacio
+				insertarParticionPrimaria(path, size, typee, fit, name, unit)
+			} else {
+				fmt.Print("\n[ ERROR: no hay espacio para agregar la particion primaria: ", name, " ]")
+			}
+		} else if strings.Compare(strings.ToLower(typee), "e") == 0 { //si es extendida
+
+		} else if strings.Compare(strings.ToLower(typee), "l") == 0 { //si es logica
+
+		}
+	} else {
+		fmt.Print("\n[ ERROR: Ya alcanzo el limite de de particiones en el disco: ]")
+	}
+}
+
+//valida ya que el disco puede tener maximo 4 particiones
+func validarLimiteDeParticionesEnDisco(path string) bool {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	contador := 0
+
+	//recorro para ver cuantos espacios vacios hay
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if actual.Tamanio == 0 {
+			contador++
+		}
+	}
+
+	//si hay algun espacio para otra particion
+	if contador > 0 {
+		return true //retorna que hay espacio
+	}
+
+	return false
+}
+
+//valida si hay un espacio en el mbr para particion primaria
+func validarQueTengaEspacioElDisco(path string, sizeParticion int64, unit string) bool {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		sizeParticion = sizeParticion * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		sizeParticion = sizeParticion * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//sera la sumatoria de byte de todas las particiones
+	var contadorSize int64 = 0
+
+	//recorro para sumar todos los byte de las particiones
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if actual.Tamanio == 0 {
+			contadorSize = contadorSize + int64(actual.Tamanio)
+		}
+	}
+
+	//espacio disponible = (tamanio disco) - (espacio actual de todas las particiones)
+	var espacioDisponible int64 = int64(m.Tamanio) - contadorSize
+
+	//si hay espacio aun
+	if sizeParticion <= espacioDisponible {
+		fmt.Println(espacioDisponible)
+		return true //retorna que hay espacio
+	}
+
+	return false
+}
+
+func insertarParticionPrimaria(path string, sizePart int64, typee string, fit string, name string, unit string) {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		sizePart = sizePart * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		sizePart = sizePart * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//accedo a las particiones
+	misParticiones := m.Particiones
+	fmt.Println(misParticiones[0])
+
+	contador := 0
+
+	//recorro para ver cuual esta vacia
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if actual.Tamanio == 0 {
+			contador = i
+			break
+		}
+	}
+
+	//se inserta despues del MBR
+	if contador == 0 {
+		//creo particion primaria
+		particionPrimariaNew := NodoParticion{}
+
+		//agrego atributos a particion primaria
+		particionPrimariaNew.Estado = 's'
+		particionPrimariaNew.TipoParticion = typee[0]
+		copy(particionPrimariaNew.TipoAjuste[:], fit)
+		particionPrimariaNew.Start = int64(size) + 1
+
+		//inserto particion
+		misParticiones[contador] = particionPrimariaNew
+		fmt.Println("ya agregada")
+		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
+		fmt.Println(misParticiones[0])
+
+		//pueden ser en la posicion 1, 2, 3
+	} else if contador > 0 {
+		//creo particion primaria
+		particionPrimariaNew := NodoParticion{}
+
+		//agrego atributos a particion primaria
+		particionPrimariaNew.Estado = 's'
+		particionPrimariaNew.TipoParticion = typee[0]
+		copy(particionPrimariaNew.TipoAjuste[:], fit)
+
+		//Donde empieza? empieza donde termina la particion anterior
+		inicioPartAnt := misParticiones[contador-1].Start //byte donde inicia la particion anterior
+		tamPartAnt := misParticiones[contador-1].Tamanio  //tamanio de la particion anterior
+		finPartAnt := inicioPartAnt + tamPartAnt          //byte donde finaliza la particion anterior
+		particionPrimariaNew.Start = finPartAnt + 1       //aqui empieza la nueva particion
+
+		//inserto particion
+		misParticiones[contador] = particionPrimariaNew
+		fmt.Println("ya agregada")
+		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
+		fmt.Println(misParticiones[0])
+	}
+
+	/*
+		m.Particiones = misParticiones
+		file.Seek(0, 0)
+		s1 := &m
+
+		//Escribimos struct (MBR)
+		var binario3 bytes.Buffer
+		binary.Write(&binario3, binary.BigEndian, s1)
+		escribirBytes(file, binario3.Bytes())*/
+
+}
+
+//Función que lee del archivo, se especifica cuantos bytes se quieren leer.
+func leerBytesFdisk(file *os.File, number int) []byte {
+	bytes := make([]byte, number) //array de bytes, de tamanio que recibe
+
+	_, err := file.Read(bytes) // Leido -> bytes
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return bytes
 }
 
 //-------------------------------FIN FDISK-------------------------------//
@@ -603,3 +876,5 @@ func desmontarParticion(path string) {
 }
 
 //-------------------------------FIN MOUNT-------------------------------//
+
+//-------------------------------OPERACIONES PARA MBR-------------------------------//
