@@ -19,7 +19,10 @@ import (
 
 func main() {
 	//leerEntrada()
-	//reporteMBR("/home/gudiel/Disco1.dsk")
+	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
+
+	//AVISO-----------------------------//
+	//EN DELETE LOGICA, CUANDO SE ELIMINA AUN FALTA REPOSICIONAR LOS PUNTEROS NEXT DEL ANTERIOR
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
@@ -155,6 +158,9 @@ func analizador(cadena string) {
 				caracter = caracter + string(examinar)
 				estado = 1
 			} else if examinarAsci == 58 { // :
+				caracter = caracter + string(examinar)
+				estado = 1
+			} else if examinarAsci == 95 { // _
 				caracter = caracter + string(examinar)
 				estado = 1
 			} else {
@@ -568,7 +574,15 @@ func fdiskComando(index int) {
 
 func operacionFdisk(size int64, unit string, path string, typee string, fit string, deletee string, name string, add int) {
 	if strings.Compare(deletee, "") != 0 { //si hay que eliminar una particion
-
+		//si existe particion primaria o extendida con ese nombre
+		if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
+			eliminarParticionPrimariaExtendida(path, name)
+			//si existe particion logica con ese nombre
+		} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
+			eliminarParticionLogica(path, name)
+		} else {
+			fmt.Print("\n[ ERROR: no exite particion con nombre: ", name, " ]")
+		}
 	} else if add != 0 { //agregar o quitar espacio de particion
 
 	} else { //crea una particion
@@ -578,37 +592,52 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 
 func agregarParticion(size int64, unit string, path string, typee string, fit string, name string) {
 
-	if validarLimiteDeParticionesEnDisco(path) { //si se puede agregar otra particion
-		//si es primaria
-		if strings.Compare(strings.ToLower(typee), "p") == 0 {
-			//si el disco aun tiene espacio
-			if validarQueTengaEspacioElDisco(path, size, unit) {
-				insertarParticionPrimaria(path, size, typee, fit, name, unit)
-			} else {
-				fmt.Print("\n[ ERROR: no hay espacio para agregar la particion primaria: ", name, " ]")
-			}
-			//si es extendida
-		} else if strings.Compare(strings.ToLower(typee), "e") == 0 {
-			//si aun no existe una extendida
-			if validarSiExisteParticionExtendida(path) == false {
+	//esto es porque hay una validacion de: 4 primarias, o 3 primarias y una extendida
+	if (strings.Compare(strings.ToLower(typee), "p") == 0) || (strings.Compare(strings.ToLower(typee), "e") == 0) {
+		if validarLimiteDeParticionesEnDisco(path) { //si se puede agregar otra particion
+			//si es primaria
+			if strings.Compare(strings.ToLower(typee), "p") == 0 {
 				//si el disco aun tiene espacio
 				if validarQueTengaEspacioElDisco(path, size, unit) {
-					insertarParticionExtendida(path, size, typee, fit, name, unit)
+					//inserta particion primaria
+					insertarParticionPrimaria(path, size, typee, fit, name, unit)
 				} else {
-					fmt.Print("\n[ ERROR: no hay espacio para agregar la particion extendida: ", name, " ]")
+					fmt.Print("\n[ ERROR: no hay espacio para agregar la particion primaria: ", name, " ]")
 				}
+				//si es extendida
+			} else if strings.Compare(strings.ToLower(typee), "e") == 0 {
+				//si aun no existe una extendida
+				if validarSiExisteParticionExtendida(path) == false {
+					//si el disco aun tiene espacio
+					if validarQueTengaEspacioElDisco(path, size, unit) {
+						//inserta particion extendida
+						insertarParticionExtendida(path, size, typee, fit, name, unit)
+					} else {
+						fmt.Print("\n[ ERROR: no hay espacio para agregar la particion extendida: ", name, " ]")
+					}
 
-			} else {
-				fmt.Print("\n[ ERROR: ya existe particion extendida en el disco, no se puede agregar: ", name, " ]")
+				} else {
+					fmt.Print("\n[ ERROR: ya existe particion extendida en el disco, no se puede agregar: ", name, " ]")
+				}
 			}
-			//si es logica
-		} else if strings.Compare(strings.ToLower(typee), "l") == 0 {
-
+		} else {
+			fmt.Print("\n[ ERROR: Ya alcanzo el limite de de particiones en el disco: ]")
 		}
-	} else {
-		fmt.Print("\n[ ERROR: Ya alcanzo el limite de de particiones en el disco: ]")
+		//si es logica
+	} else if strings.Compare(strings.ToLower(typee), "l") == 0 {
+		//si existe particion extendida
+		if validarSiExisteParticionExtendida(path) {
+			//si hay espacio dentro de la extendida
+			if validarQueTengaEspacioParticionExtendida(path, size, unit) {
+				//inserta particion logica
+				insertarParticionLogica(path, size, typee, fit, name, unit)
+			} else {
+				fmt.Print("\n[ ERROR: no hay espacio para agregar la particion logica: ", name, " ]")
+			}
+		} else {
+			fmt.Print("\n[ ERROR: no existe particion extendida en el disco, no se puede agregar: ", name, " ]")
+		}
 	}
-
 }
 
 //valida ya que el disco puede tener maximo 4 particiones
@@ -719,6 +748,7 @@ func validarQueTengaEspacioElDisco(path string, sizeParticion int64, unit string
 	return false
 }
 
+//inserta particion primaria en el disco
 func insertarParticionPrimaria(path string, sizePart int64, typee string, fit string, name string, unit string) {
 
 	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
@@ -755,10 +785,6 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 	//accedo a las particiones
 	misParticiones := m.Particiones
-	fmt.Println("arr pos 0 : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
-	fmt.Println("arr pos 1 : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
-	fmt.Println("arr pos 2 : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
-	fmt.Println("arr pos 3 : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
 
 	//para ver la posicion vacia
 	contador := 0
@@ -813,10 +839,11 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
 	}
 
-	fmt.Println("arr pos 0 : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
-	fmt.Println("arr pos 1 : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
-	fmt.Println("arr pos 2 : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
-	fmt.Println("arr pos 3 : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
+	fmt.Println("\nINSERTO PRIMARIA:")
+	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
 
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
@@ -834,6 +861,7 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 }
 
+//valida si hay una particion extendida en el disco
 func validarSiExisteParticionExtendida(path string) bool {
 	//Abrimos/creamos un archivo.
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
@@ -882,6 +910,7 @@ func validarSiExisteParticionExtendida(path string) bool {
 	return false
 }
 
+//inserta particion extendida en el disco
 func insertarParticionExtendida(path string, sizePart int64, typee string, fit string, name string, unit string) {
 	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
 	if strings.Compare(strings.ToLower(unit), "k") == 0 {
@@ -917,10 +946,6 @@ func insertarParticionExtendida(path string, sizePart int64, typee string, fit s
 
 	//accedo a las particiones
 	misParticiones := m.Particiones
-	fmt.Println("arr pos 0 : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
-	fmt.Println("arr pos 1 : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
-	fmt.Println("arr pos 2 : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
-	fmt.Println("arr pos 3 : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
 
 	//para ver la posicion vacia
 	contador := 0
@@ -974,10 +999,11 @@ func insertarParticionExtendida(path string, sizePart int64, typee string, fit s
 		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
 	}
 
-	fmt.Println("arr pos 0 : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
-	fmt.Println("arr pos 1 : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
-	fmt.Println("arr pos 2 : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
-	fmt.Println("arr pos 3 : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
+	fmt.Println("\nINSERTO EXTENDIDA:")
+	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
 
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
@@ -992,6 +1018,504 @@ func insertarParticionExtendida(path string, sizePart int64, typee string, fit s
 	var binario3 bytes.Buffer
 	binary.Write(&binario3, binary.BigEndian, s1)
 	escribirBytes(file, binario3.Bytes())
+}
+
+//valida si hay espacio en la particion extendida, dentro del disco
+func validarQueTengaEspacioParticionExtendida(path string, sizeParticion int64, unit string) bool {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		sizeParticion = sizeParticion * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		sizeParticion = sizeParticion * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	//sera la sumatoria de byte de todas las particiones primarias
+	var contadorSize int64 = 0
+
+	//recorro para sumar todos los byte de las particiones
+	for i := 0; i < 5; i++ {
+		actual := misParticionesLogicas[i]
+		if actual.Tamanio != 0 {
+			contadorSize = contadorSize + int64(actual.Tamanio)
+		}
+	}
+
+	//espacio disponible = (tamanio particion extendida) - (espacio actual de todas las particiones logicas)
+	var espacioDisponible int64 = int64(misParticiones[posicionExtendida].Tamanio) - contadorSize
+
+	//si hay espacio aun
+	if sizeParticion <= espacioDisponible {
+		return true //retorna que hay espacio
+	}
+
+	return false
+}
+
+//inserta particion logica, dentro de la extendida
+func insertarParticionLogica(path string, sizePart int64, typee string, fit string, name string, unit string) {
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		sizePart = sizePart * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		sizePart = sizePart * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//accedo a las particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//accedo a las particiones logicas, quee estan dentro de la extendida
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	//para ver la posicion logica vacia
+	posicionLogicaVacia := 0
+
+	//recorro para ver cuual esta vacia
+	for i := 0; i < 4; i++ {
+		actual := misParticionesLogicas[i]
+		if actual.Tamanio == 0 {
+			posicionLogicaVacia = i
+			break
+		}
+	}
+
+	//se inserta despues del MBR
+	if posicionLogicaVacia == 0 {
+		//creo particion primaria
+		particionLogicaNew := NodoParticionLogica{}
+
+		//agrego atributos a particion primaria
+		copy(particionLogicaNew.Name[:], name)
+		particionLogicaNew.Tamanio = sizePart
+		particionLogicaNew.Estado = 1
+		particionLogicaNew.TipoParticion = typee[0]
+		copy(particionLogicaNew.TipoAjuste[:], fit)
+		particionLogicaNew.Start = int64(misParticiones[posicionExtendida].Start) + 1 //inicia donde inicia la extend
+
+		//inserto particion
+		misParticionesLogicas[posicionLogicaVacia] = particionLogicaNew
+		fmt.Println("Inicio: ", name, " : ", particionLogicaNew.Start)
+
+		//pueden ser en la posicion 1, 2, 3
+	} else if posicionLogicaVacia > 0 {
+		//creo particion primaria
+		particionPrimariaNew := NodoParticionLogica{}
+
+		//agrego atributos a particion primaria
+		copy(particionPrimariaNew.Name[:], name)
+		particionPrimariaNew.Tamanio = sizePart
+		particionPrimariaNew.Estado = 1
+		particionPrimariaNew.TipoParticion = typee[0]
+		copy(particionPrimariaNew.TipoAjuste[:], fit)
+
+		//Donde empieza? empieza donde termina la particion anterior
+		inicioPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Start //byte donde inicia la particion anterior
+		tamPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Tamanio  //tamanio de la particion anterior
+		finPartAnt := inicioPartAnt + tamPartAnt                            //byte donde finaliza la particion anterior
+		particionPrimariaNew.Start = finPartAnt + 1                         //aqui empieza la nueva particion
+
+		//inserto particion
+		misParticionesLogicas[posicionLogicaVacia] = particionPrimariaNew
+		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
+	}
+
+	fmt.Println("\nINSERTO LOGICA:")
+	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
+	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
+
+	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
+	//cuando se crea una nueva particion logica se agregan a 'misParticionesPrimarias'
+	//entonces 'misParticionesPrimarias' tienen las actuales, mas la nueva que se inserto
+	//por eso se iguala de nuevo, para que 'misParticiones[posicionExtendida].ParticionesLogicas', e guarden particiones ya actualizadas
+	misParticiones[posicionExtendida].ParticionesLogicas = misParticionesLogicas
+
+	//para que se actualice nada mas
+	m.Particiones = misParticiones
+
+	file.Seek(0, 0)
+	s1 := &m
+
+	//Reescribimos struct (MBR)
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s1)
+	escribirBytes(file, binario3.Bytes())
+}
+
+//validar si existe particion primaria o extendida dado nombre (para delete)
+func validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path string, name string) bool {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	existe := false
+
+	//recorro para ver si existe nombre
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			existe = true
+			break
+		}
+	}
+
+	//si existe particion con ese nombre
+	if existe {
+		return true
+	}
+
+	return false
+
+}
+
+//eliminar particion primaria o extendida
+func eliminarParticionPrimariaExtendida(path string, name string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	posicionParticion := 0
+
+	//recorro para ver cuantos espacios vacios hay
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			posicionParticion = i
+			break
+		}
+	}
+
+	//creo una particion vacia
+	particionNew := NodoParticion{}
+
+	//inserto particion vacia en la posicion a eliminar
+	misParticiones[posicionParticion] = particionNew
+
+	fmt.Println("\nDELETE PRIMARIA O EXTENDIDA:")
+	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
+
+	//las particiones actuales en el disco se encuentran en 'm.particiones'
+	//cuando se elimino una particion se elimino de 'misPartiiones'
+	//entonces 'misParticiones' tiene las actuales, con la que se acaba de liminar
+	//por eso se iguala de nuevo, para que em 'm.Particiones' ya no aparezca la que se elimino
+	m.Particiones = misParticiones
+
+	file.Seek(0, 0)
+	s1 := &m
+
+	//Reescribimos struct (MBR)
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s1)
+	escribirBytes(file, binario3.Bytes())
+
+}
+
+//func validar existe particion logica dado nombre (para delete)
+func validarSiExisteParticionLogicaConNombreEspecifico(path string, name string) bool {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//accedo a particiones logicas
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	existe := false
+
+	//recorro para ver si existe nombre
+	for i := 0; i < 5; i++ {
+		actual := misParticionesLogicas[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			existe = true
+			break
+		}
+	}
+
+	//si existe logica con ese nombre
+	if existe {
+		return true //retorna que hay espacio
+	}
+
+	return false
+}
+
+func eliminarParticionLogica(path string, name string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//accedo a particiones logicas
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	posicionLogica := 0
+
+	//recorro para ver si existe nombre
+	for i := 0; i < 5; i++ {
+		actual := misParticionesLogicas[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			posicionLogica = i
+			break
+		}
+	}
+
+	//creo particion logica vacia
+	particionLogicaNew := NodoParticionLogica{}
+
+	//inserto particion vacia en la posicion especifica
+	misParticionesLogicas[posicionLogica] = particionLogicaNew
+
+	fmt.Println("\nDELETE LOGICA:")
+	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
+	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
+
+	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
+	//cuando se elimina una particion logica se elimina de 'misParticionesPrimarias'
+	//entonces 'misParticionesPrimarias' tienen las actuales, y se quito la que se elimino
+	//por eso se iguala de nuevo, para que 'misParticiones[posicionExtendida].ParticionesLogicas', se actualice con la particion eliminada
+	misParticiones[posicionExtendida].ParticionesLogicas = misParticionesLogicas
+
+	//para que se actualice nada mas
+	m.Particiones = misParticiones
+
+	file.Seek(0, 0)
+	s1 := &m
+
+	//Reescribimos struct (MBR)
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s1)
+	escribirBytes(file, binario3.Bytes())
+
 }
 
 //Función que lee del archivo, se especifica cuantos bytes se quieren leer.
