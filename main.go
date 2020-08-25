@@ -57,7 +57,7 @@ type NodoParticionLogica struct {
 	Tamanio       int64
 	Name          [16]byte
 	Start         int64 //byte donde inicia la particion
-	End           int64 //byte donde termina la particion
+	Next          int64 //byte donde termina la particion
 }
 
 //--------------------------------FINAL ESTRUCTURAS-------------------------------//
@@ -1489,8 +1489,81 @@ func eliminarParticionLogica(path string, name string) {
 	//creo particion logica vacia
 	particionLogicaNew := NodoParticionLogica{}
 
-	//inserto particion vacia en la posicion especifica
-	misParticionesLogicas[posicionLogica] = particionLogicaNew
+	//redireccionando next de particiones logicas
+	//si la que se va eliminar esta en la primera posicion
+	if posicionLogica == 0 {
+		//solo se elimina
+		misParticionesLogicas[posicionLogica] = particionLogicaNew
+
+		//si la particiona eliminar esta en la ultima posicion
+	} else if posicionLogica == 4 {
+		//buscando particion anterior
+		posAnterior := -1
+		for i := 3; i > -1; i-- {
+			//si encuantra antes una particion, guardo posicion donde la encuentra
+			if misParticionesLogicas[i].Tamanio != 0 {
+				posAnterior = i
+				break
+			}
+		}
+		//quiere decir que si encontro una particion antes
+		if posAnterior != -1 {
+			//la particion que esta antes ahora apunta a -1
+			misParticionesLogicas[posAnterior].Next = int64(-1)
+
+			//quiere decir que solo existe una particion, y es en la ultima
+		} else {
+			//solo se elimina
+			misParticionesLogicas[posicionLogica] = particionLogicaNew
+		}
+		//si la particiona eliminar no es la primera ni la ultima
+	} else {
+		//buscando particion anterior
+		posAnterior := -1
+		for i := posicionLogica - 1; i > -1; i-- { //empieza a buscar una antes de la que se va eliminar
+			//si encuantra antes una particion, guardo posicion donde la encuentra
+			if misParticionesLogicas[i].Tamanio != 0 {
+				posAnterior = i
+				break
+			}
+		}
+
+		//buscando particion siguiente
+		posSiguiente := -1
+		for i := posicionLogica + 1; i < 5; i-- { //empieza a buscar una despues de la que se va eliminar
+			//si encuantra despues una particion, guardo posicion donde la encuentra
+			if misParticionesLogicas[i].Tamanio != 0 {
+				posAnterior = i
+				break
+			}
+		}
+
+		//CASO 1: que tenga siguiente pero no anterior
+		if (posSiguiente != -1) && (posAnterior == -1) {
+			//solo se elimna
+			misParticionesLogicas[posicionLogica] = particionLogicaNew
+
+			//CASO 2: que tenga anterior pero no siguiente
+		} else if (posSiguiente == -1) && (posAnterior != -1) {
+			//next de parte anterior igual a -1
+			misParticionesLogicas[posAnterior].Next = -1
+			//elimino
+			misParticionesLogicas[posicionLogica] = particionLogicaNew
+
+			//CASO 3: que no tenga siguiente ni anterior
+		} else if (posSiguiente == -1) && (posAnterior == -1) {
+			//solo se elimna
+			misParticionesLogicas[posicionLogica] = particionLogicaNew
+
+			//CASO 4: que tenga siguiente y anterior
+		} else if (posSiguiente != -1) && (posAnterior != -1) {
+			//next de parte interior=next de parte a eliminar
+			misParticionesLogicas[posAnterior].Next = misParticionesLogicas[posicionLogica].Next
+			//elimino
+			misParticionesLogicas[posicionLogica] = particionLogicaNew
+		}
+
+	}
 
 	fmt.Println("\nDELETE LOGICA:")
 	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
