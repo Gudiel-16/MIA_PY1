@@ -582,7 +582,13 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 			fmt.Print("\n[ ERROR: no exite particion con nombre: ", name, " ]")
 		}
 	} else if add != 0 { //agregar o quitar espacio de particion
-
+		//si existe particion primaria o extendida con ese nombre
+		if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
+			//si existe particion logica con ese nombre
+		} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
+		} else {
+			fmt.Print("\n[ ERROR: no exite particion con nombre: ", name, " ]")
+		}
 	} else { //crea una particion
 		agregarParticion(size, unit, path, typee, fit, name)
 	}
@@ -1513,6 +1519,7 @@ func validarSiExisteParticionLogicaConNombreEspecifico(path string, name string)
 	return false
 }
 
+//elimina particion logica
 func eliminarParticionLogica(path string, name string) {
 	//Abrimos/creamos un archivo.
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
@@ -1678,6 +1685,151 @@ func eliminarParticionLogica(path string, name string) {
 	binary.Write(&binario3, binary.BigEndian, s1)
 	escribirBytes(file, binario3.Bytes())
 
+}
+
+//valida si se le puede agregar o quitar espacio en primaria o extendida
+func validaSiSeLePuedeaddEspacioEnPrimariaExtendida(path string, name string, unit string, add int64) bool {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		add = add * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		add = add * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	posicionParticion := 0
+
+	//recorro para ver en que posicion esta la particion con el name
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			posicionParticion = i
+			break
+		}
+	}
+
+	//si hay que agregar en la primera posicion
+	if posicionParticion == 0 {
+
+		//se agregara espacio
+		if add >= 0 {
+
+			//buscando particion siguiente
+			posSiguiente := -1
+			for i := posicionParticion + 1; i < 4; i++ { //empieza a buscar una despues en la que se va agregar
+				//si encuantra despues una particion, guardo posicion donde la encuentra
+				if misParticiones[i].Tamanio != 0 {
+					posSiguiente = i
+					break
+				}
+			}
+
+			//si hay una particion despues
+			if posSiguiente != -1 {
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticiones[posicionParticion].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticiones[posicionParticion].Tamanio
+				//obtengo el star de la posicion siguiente
+				starSiguiente := misParticiones[posSiguiente].Start
+				//opero para que me de el espacio que hay entre las dos
+				espacioDisponible := starSiguiente - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//si se puede agregar espacio
+					return true
+					//newTamanaio := tamanioParticion + add
+					//misParticiones[posicionParticion].Tamanio = newTamanaio
+				}
+
+				//si no hay particion despues
+			} else if posSiguiente == -1 {
+				//obtengo el tamanio del disco
+				tamDisco := m.Tamanio
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticiones[posicionParticion].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticiones[posicionParticion].Tamanio
+				//opero para que me del el espacio disponible
+				espacioDisponible := tamDisco - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible > add {
+					//se puede agregar espacio
+					return true
+				}
+			}
+
+			//se quitara espacio
+		} else if add < 0 {
+
+		}
+
+		//si hay que agregar en la ultima posicion
+	} else if posicionParticion == 3 {
+
+		//si hay que agregar espacio
+		if add >= 0 {
+			//obtengo el tamanio del disco
+			tamDisco := m.Tamanio
+			//obtengo el star de la particion a la que le quiero agregar
+			starActual := misParticiones[posicionParticion].Start
+			//obtengo el tamanio de la particon a la que le quiero agregar
+			tamanioParticion := misParticiones[posicionParticion].Tamanio
+			//opero para que me del el espacio disponible
+			espacioDisponible := tamDisco - (starActual + tamanioParticion)
+			//valido
+			if espacioDisponible > add {
+				//se puede agregar espacio
+				return true
+			}
+
+			//si hay que quitar espacio
+		} else if add < 0 {
+
+		}
+
+		//no es la primera ni la ultima posicion
+	} else {
+
+	}
+
+	return false
 }
 
 //Función que lee del archivo, se especifica cuantos bytes se quieren leer.
