@@ -18,11 +18,9 @@ import (
 )
 
 func main() {
-	//leerEntrada()
+	leerEntrada()
 	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
 
-	//AVISO-----------------------------//
-	//EN DELETE LOGICA, CUANDO SE ELIMINA AUN FALTA REPOSICIONAR LOS PUNTEROS NEXT DEL ANTERIOR
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
@@ -800,7 +798,6 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 	//se inserta despues del MBR
 	if contador == 0 {
-		fmt.Println("PRIMARA POSICION")
 		//creo particion primaria
 		particionPrimariaNew := NodoParticion{}
 
@@ -814,7 +811,6 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 		//inserto particion
 		misParticiones[contador] = particionPrimariaNew
-		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
 
 		//pueden ser en la posicion 1, 2, 3
 	} else if contador > 0 {
@@ -836,14 +832,13 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 
 		//inserto particion
 		misParticiones[contador] = particionPrimariaNew
-		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
 	}
 
 	fmt.Println("\nINSERTO PRIMARIA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
-	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
-	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
-	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
+	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Star: ", misParticiones[1].Start, " Tipo: ", string(misParticiones[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Star: ", misParticiones[2].Start, " Tipo: ", string(misParticiones[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Star: ", misParticiones[3].Start, " Tipo: ", string(misParticiones[3].TipoParticion))
 
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
@@ -974,7 +969,6 @@ func insertarParticionExtendida(path string, sizePart int64, typee string, fit s
 
 		//inserto particion
 		misParticiones[contador] = particionPrimariaNew
-		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
 
 		//pueden ser en la posicion 1, 2, 3
 	} else if contador > 0 {
@@ -996,14 +990,13 @@ func insertarParticionExtendida(path string, sizePart int64, typee string, fit s
 
 		//inserto particion
 		misParticiones[contador] = particionPrimariaNew
-		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
 	}
 
 	fmt.Println("\nINSERTO EXTENDIDA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Tipo: ", string(misParticiones[0].TipoParticion))
-	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Tipo: ", string(misParticiones[1].TipoParticion))
-	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Tipo: ", string(misParticiones[2].TipoParticion))
-	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Tipo: ", string(misParticiones[3].TipoParticion))
+	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Star: ", misParticiones[1].Start, " Tipo: ", string(misParticiones[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Star: ", misParticiones[2].Start, " Tipo: ", string(misParticiones[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Star: ", misParticiones[3].Start, " Tipo: ", string(misParticiones[3].TipoParticion))
 
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
@@ -1146,7 +1139,7 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 	posicionLogicaVacia := 0
 
 	//recorro para ver cuual esta vacia
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 5; i++ {
 		actual := misParticionesLogicas[i]
 		if actual.Tamanio == 0 {
 			posicionLogicaVacia = i
@@ -1156,50 +1149,145 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 
 	//se inserta despues del MBR
 	if posicionLogicaVacia == 0 {
-		//creo particion primaria
-		particionLogicaNew := NodoParticionLogica{}
 
-		//agrego atributos a particion primaria
-		copy(particionLogicaNew.Name[:], name)
-		particionLogicaNew.Tamanio = sizePart
-		particionLogicaNew.Estado = 1
-		particionLogicaNew.TipoParticion = typee[0]
-		copy(particionLogicaNew.TipoAjuste[:], fit)
-		particionLogicaNew.Start = int64(misParticiones[posicionExtendida].Start) + 1 //inicia donde inicia la extend
+		//buscando particion siguiente
+		posSiguiente := -1
+		for i := posicionLogicaVacia + 1; i < 5; i++ { //empieza a buscar desde la posicion 1, y que insertara en la posicion 0
+			//si encuantra despues una particion, guardo posicion donde la encuentra
+			if misParticionesLogicas[i].Tamanio != 0 {
+				posSiguiente = i
+				break
+			}
+		}
 
-		//inserto particion
-		misParticionesLogicas[posicionLogicaVacia] = particionLogicaNew
-		fmt.Println("Inicio: ", name, " : ", particionLogicaNew.Start)
+		//CASO 1: no tenga siguiente
+		if posSiguiente == -1 {
+
+			//creo particion primaria
+			particionLogicaNew := NodoParticionLogica{}
+
+			//agrego atributos a particion primaria
+			copy(particionLogicaNew.Name[:], name)
+			particionLogicaNew.Tamanio = sizePart
+			particionLogicaNew.Estado = 1
+			particionLogicaNew.TipoParticion = typee[0]
+			copy(particionLogicaNew.TipoAjuste[:], fit)
+			particionLogicaNew.Start = int64(misParticiones[posicionExtendida].Start) + 1 //inicia donde inicia la extend
+			particionLogicaNew.Next = int64(-1)
+
+			//inserto particion
+			misParticionesLogicas[posicionLogicaVacia] = particionLogicaNew
+			fmt.Println("Inicio: ", name, " : ", particionLogicaNew.Start)
+
+			//CASO 2: tenga siguiente
+		} else if posSiguiente != -1 {
+
+			//creo particion primaria
+			particionLogicaNew := NodoParticionLogica{}
+
+			//agrego atributos a particion primaria
+			copy(particionLogicaNew.Name[:], name)
+			particionLogicaNew.Tamanio = sizePart
+			particionLogicaNew.Estado = 1
+			particionLogicaNew.TipoParticion = typee[0]
+			copy(particionLogicaNew.TipoAjuste[:], fit)
+			particionLogicaNew.Start = int64(misParticiones[posicionExtendida].Start) + 1 //inicia donde inicia la extend
+			particionLogicaNew.Next = misParticionesLogicas[posSiguiente].Start
+
+			//inserto particion
+			misParticionesLogicas[posicionLogicaVacia] = particionLogicaNew
+			fmt.Println("Inicio: ", name, " : ", particionLogicaNew.Start)
+
+		}
 
 		//pueden ser en la posicion 1, 2, 3
 	} else if posicionLogicaVacia > 0 {
-		//creo particion primaria
-		particionPrimariaNew := NodoParticionLogica{}
 
-		//agrego atributos a particion primaria
-		copy(particionPrimariaNew.Name[:], name)
-		particionPrimariaNew.Tamanio = sizePart
-		particionPrimariaNew.Estado = 1
-		particionPrimariaNew.TipoParticion = typee[0]
-		copy(particionPrimariaNew.TipoAjuste[:], fit)
+		//buscando particion anterior
+		posAnterior := -1
+		for i := posicionLogicaVacia - 1; i > -1; i-- { //empieza a buscar una antes de la que se va eliminar
+			//si encuantra antes una particion, guardo posicion donde la encuentra
+			if misParticionesLogicas[i].Tamanio != 0 {
+				posAnterior = i
+				break
+			}
+		}
 
-		//Donde empieza? empieza donde termina la particion anterior
-		inicioPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Start //byte donde inicia la particion anterior
-		tamPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Tamanio  //tamanio de la particion anterior
-		finPartAnt := inicioPartAnt + tamPartAnt                            //byte donde finaliza la particion anterior
-		particionPrimariaNew.Start = finPartAnt + 1                         //aqui empieza la nueva particion
+		//buscando particion siguiente
+		posSiguiente := -1
+		for i := posicionLogicaVacia + 1; i < 5; i++ { //empieza a buscar una despues de la que se va eliminar
+			//si encuantra despues una particion, guardo posicion donde la encuentra
+			if misParticionesLogicas[i].Tamanio != 0 {
+				posSiguiente = i
+				break
+			}
+		}
 
-		//inserto particion
-		misParticionesLogicas[posicionLogicaVacia] = particionPrimariaNew
-		fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
+		//CASO 1: tenga anterior y no tenga siguiente
+		if (posAnterior != -1) && (posSiguiente == -1) {
+
+			//creo particion primaria
+			particionPrimariaNew := NodoParticionLogica{}
+
+			//agrego atributos a particion primaria
+			copy(particionPrimariaNew.Name[:], name)
+			particionPrimariaNew.Tamanio = sizePart
+			particionPrimariaNew.Estado = 1
+			particionPrimariaNew.TipoParticion = typee[0]
+			copy(particionPrimariaNew.TipoAjuste[:], fit)
+
+			//Donde empieza? empieza donde termina la particion anterior
+			inicioPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Start //byte donde inicia la particion anterior
+			tamPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Tamanio  //tamanio de la particion anterior
+			finPartAnt := inicioPartAnt + tamPartAnt                            //byte donde finaliza la particion anterior
+			particionPrimariaNew.Start = finPartAnt + 1                         //aqui empieza la nueva particion
+
+			//next anterior = star nuevo
+			//next nuevo = -1
+			misParticionesLogicas[posAnterior].Next = particionPrimariaNew.Start
+			particionPrimariaNew.Next = int64(-1)
+
+			//inserto particion
+			misParticionesLogicas[posicionLogicaVacia] = particionPrimariaNew
+			fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
+
+			//CASO 2: tenga anterior y siguiente
+		} else if (posAnterior != -1) && (posSiguiente != -1) {
+
+			//creo particion primaria
+			particionPrimariaNew := NodoParticionLogica{}
+
+			//agrego atributos a particion primaria
+			copy(particionPrimariaNew.Name[:], name)
+			particionPrimariaNew.Tamanio = sizePart
+			particionPrimariaNew.Estado = 1
+			particionPrimariaNew.TipoParticion = typee[0]
+			copy(particionPrimariaNew.TipoAjuste[:], fit)
+
+			//Donde empieza? empieza donde termina la particion anterior
+			inicioPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Start //byte donde inicia la particion anterior
+			tamPartAnt := misParticionesLogicas[posicionLogicaVacia-1].Tamanio  //tamanio de la particion anterior
+			finPartAnt := inicioPartAnt + tamPartAnt                            //byte donde finaliza la particion anterior
+			particionPrimariaNew.Start = finPartAnt + 1                         //aqui empieza la nueva particion
+
+			//next nuevo = next anterior
+			//next anterior = star nuevo
+			particionPrimariaNew.Next = misParticionesLogicas[posAnterior].Next
+			misParticionesLogicas[posAnterior].Next = particionPrimariaNew.Start
+
+			//inserto particion
+			misParticionesLogicas[posicionLogicaVacia] = particionPrimariaNew
+			fmt.Println("Inicio: ", name, " : ", particionPrimariaNew.Start)
+		}
+
 	}
 
 	fmt.Println("\nINSERTO LOGICA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
-	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
-	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
-	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
-	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
+	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Star: ", misParticionesLogicas[0].Start, " Next: ", misParticionesLogicas[0].Next, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Star: ", misParticionesLogicas[1].Start, " Next: ", misParticionesLogicas[1].Next, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Star: ", misParticionesLogicas[2].Start, " Next: ", misParticionesLogicas[2].Next, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Star: ", misParticionesLogicas[3].Start, " Next: ", misParticionesLogicas[3].Next, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
+	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Star: ", misParticionesLogicas[4].Start, " Next: ", misParticionesLogicas[4].Next, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
 
 	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
 	//cuando se crea una nueva particion logica se agregan a 'misParticionesPrimarias'
@@ -1510,6 +1598,7 @@ func eliminarParticionLogica(path string, name string) {
 		if posAnterior != -1 {
 			//la particion que esta antes ahora apunta a -1
 			misParticionesLogicas[posAnterior].Next = int64(-1)
+			misParticionesLogicas[posicionLogica] = particionLogicaNew
 
 			//quiere decir que solo existe una particion, y es en la ultima
 		} else {
@@ -1530,10 +1619,10 @@ func eliminarParticionLogica(path string, name string) {
 
 		//buscando particion siguiente
 		posSiguiente := -1
-		for i := posicionLogica + 1; i < 5; i-- { //empieza a buscar una despues de la que se va eliminar
+		for i := posicionLogica + 1; i < 5; i++ { //empieza a buscar una despues de la que se va eliminar
 			//si encuantra despues una particion, guardo posicion donde la encuentra
 			if misParticionesLogicas[i].Tamanio != 0 {
-				posAnterior = i
+				posSiguiente = i
 				break
 			}
 		}
@@ -1566,11 +1655,11 @@ func eliminarParticionLogica(path string, name string) {
 	}
 
 	fmt.Println("\nDELETE LOGICA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
-	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
-	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
-	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
-	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
+	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Star: ", misParticionesLogicas[0].Start, " Next: ", misParticionesLogicas[0].Next, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
+	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Star: ", misParticionesLogicas[1].Start, " Next: ", misParticionesLogicas[1].Next, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
+	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Star: ", misParticionesLogicas[2].Start, " Next: ", misParticionesLogicas[2].Next, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
+	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Star: ", misParticionesLogicas[3].Start, " Next: ", misParticionesLogicas[3].Next, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
+	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Star: ", misParticionesLogicas[4].Start, " Next: ", misParticionesLogicas[4].Next, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
 
 	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
 	//cuando se elimina una particion logica se elimina de 'misParticionesPrimarias'
