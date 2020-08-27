@@ -18,13 +18,16 @@ import (
 )
 
 func main() {
-	leerEntrada()
+	//leerEntrada()
 	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
-
+	pruebaMount()
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
 var listaComandos []string
+
+//se iran guardando los mount
+var mapaMount = make(map[string][]NodoMount)
 
 //--------------------------------ESTRUCTURAS-------------------------------//
 
@@ -56,6 +59,13 @@ type NodoParticionLogica struct {
 	Name          [16]byte
 	Start         int64 //byte donde inicia la particion
 	Next          int64 //byte donde termina la particion
+}
+
+//NodoMount ,
+type NodoMount struct {
+	Path  string
+	Name  string
+	NumID string
 }
 
 //--------------------------------FINAL ESTRUCTURAS-------------------------------//
@@ -615,6 +625,7 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 	} else if add != 0 { //agregar o quitar espacio de particion
 		//si existe particion primaria o extendida con ese nombre
 		if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
+			//valida si se le puede agregar o quitar espacio
 			if validaSiSeLePuedeaddEspacioEnPrimariaExtendida(path, name, unit, int64(add)) {
 				//agrega o quita espacio en extendida o primaria
 				addEspacioEnPrimariaExtendida(path, name, unit, int64(add))
@@ -624,6 +635,13 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 
 			//si existe particion logica con ese nombre
 		} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
+			//valida si se le puede agregar o quitar espacio
+			if validaSiSeLePuedeaddEspacioEnLogica(path, name, unit, int64(add)) {
+				//agrega o quita espacio en logica
+				addEspacioEnLogica(path, name, unit, int64(add))
+			} else {
+				fmt.Print("\n[ ERROR: no se puede agregar o quitar espacio en particion Logica con nombre: ", name, " ]")
+			}
 		} else {
 			fmt.Print("\n[ ERROR: no exite particion con nombre: ", name, " ]")
 		}
@@ -2174,6 +2192,492 @@ func addEspacioEnPrimariaExtendida(path string, name string, unit string, add in
 
 }
 
+func validaSiSeLePuedeaddEspacioEnLogica(path string, name string, unit string, add int64) bool {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		add = add * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		add = add * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//accedo a particiones logicas
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	posicionLogica := 0
+
+	//recorro para ver si existe nombre
+	for i := 0; i < len(misParticionesLogicas); i++ {
+		actual := misParticionesLogicas[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			posicionLogica = i
+			break
+		}
+	}
+
+	//si hay que agregar en la primera posicion
+	if posicionLogica == 0 {
+
+		//se agregara espacio
+		if add >= 0 {
+
+			//buscando particion siguiente
+			posSiguiente := -1
+			for i := posicionLogica + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar una despues en la que se va agregar
+				//si encuantra despues una particion, guardo posicion donde la encuentra
+				if misParticionesLogicas[i].Tamanio != 0 {
+					posSiguiente = i
+					break
+				}
+			}
+
+			//si hay una particion despues
+			if posSiguiente != -1 {
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//obtengo el star de la posicion siguiente
+				starSiguiente := misParticionesLogicas[posSiguiente].Start
+				//opero para que me de el espacio que hay entre las dos
+				espacioDisponible := starSiguiente - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//si se puede agregar espacio
+					return true
+					//newTamanaio := tamanioParticion + add
+					//misParticiones[posicionParticion].Tamanio = newTamanaio
+				}
+
+				//si no hay particion despues
+			} else if posSiguiente == -1 {
+				//obtengo el star de la extendida
+				starExtend := misParticiones[posicionExtendida].Start
+				//obtengo el tamanio de extendida
+				tamExtend := misParticiones[posicionExtendida].Tamanio
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//opero para que me del el espacio disponible
+				espacioDisponible := (starExtend + tamExtend) - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//se puede agregar espacio
+					return true
+				}
+			}
+
+			//se quitara espacio
+		} else if add < 0 {
+			//obtenemos tamanio de particion que le queremos quitar espacio
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//es suma porque el size viene negativo
+			nuevoTamanio := tamanioParticion + add
+			//validamos
+			if nuevoTamanio >= 1 {
+				return true
+			}
+		}
+
+		//si hay que agregar en la ultima posicion
+	} else if posicionLogica == (len(misParticionesLogicas) - 1) {
+
+		//si hay que agregar espacio
+		if add >= 0 {
+			//obtengo el star de la extendida
+			starExtend := misParticiones[posicionExtendida].Start
+			//obtengo el tamanio de extendida
+			tamExtend := misParticiones[posicionExtendida].Tamanio
+			//obtengo el star de la particion a la que le quiero agregar
+			starActual := misParticionesLogicas[posicionLogica].Start
+			//obtengo el tamanio de la particon a la que le quiero agregar
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//opero para que me del el espacio disponible
+			espacioDisponible := (starExtend + tamExtend) - (starActual + tamanioParticion)
+			//valido
+			if espacioDisponible >= add {
+				//se puede agregar espacio
+				return true
+			}
+
+			//si hay que quitar espacio
+		} else if add < 0 {
+			//obtenemos tamanio de particion que le queremos quitar espacio
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//es suma porque el size viene negativo
+			nuevoTamanio := tamanioParticion + add
+			//validamos
+			if nuevoTamanio >= 1 {
+				return true
+			}
+		}
+
+		//no es la primera ni la ultima posicion (puede ser dos o tres)
+	} else {
+		if add >= 0 {
+
+			//buscando particion siguiente
+			posSiguiente := -1
+			for i := posicionLogica + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar una despues en la que se va agregar
+				//si encuantra despues una particion, guardo posicion donde la encuentra
+				if misParticionesLogicas[i].Tamanio != 0 {
+					posSiguiente = i
+					break
+				}
+			}
+
+			//tenga siguiente
+			if posSiguiente != -1 {
+				//star siguiente
+				starSiguiente := misParticionesLogicas[posSiguiente].Start
+				//star acutal
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//tamanio actual
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//espacio libre
+				espacioDisponible := starSiguiente - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					return true
+				}
+
+				//no tenga siguiente
+			} else if posSiguiente == -1 {
+				//obtengo el star de la extendida
+				starExtend := misParticiones[posicionExtendida].Start
+				//obtengo el tamanio de extendida
+				tamExtend := misParticiones[posicionExtendida].Tamanio
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//opero para que me del el espacio disponible
+				espacioDisponible := (starExtend + tamExtend) - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//se puede agregar espacio
+					return true
+				}
+			}
+
+		} else if add < 0 {
+			//obtenemos tamanio de particion que le queremos quitar espacio
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//es suma porque el size viene negativo
+			nuevoTamanio := tamanioParticion + add
+			//validamos
+			if nuevoTamanio >= 1 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func addEspacioEnLogica(path string, name string, unit string, add int64) {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		add = add * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		add = add * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//accedo a particiones logicas
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	posicionLogica := 0
+
+	//recorro para ver si existe nombre
+	for i := 0; i < len(misParticionesLogicas); i++ {
+		actual := misParticionesLogicas[i]
+
+		//eliminando espacios en blanco o nulos del name
+		nombrePart := ""
+		for j := 0; j < 16; j++ {
+			if actual.Name[j] != 0 {
+				nombrePart += string(actual.Name[j])
+			}
+		}
+		if strings.Compare(strings.ToLower(nombrePart), strings.ToLower(name)) == 0 {
+			posicionLogica = i
+			break
+		}
+	}
+
+	//si hay que agregar en la primera posicion
+	if posicionLogica == 0 {
+
+		//se agregara espacio
+		if add >= 0 {
+
+			//buscando particion siguiente
+			posSiguiente := -1
+			for i := posicionLogica + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar una despues en la que se va agregar
+				//si encuantra despues una particion, guardo posicion donde la encuentra
+				if misParticionesLogicas[i].Tamanio != 0 {
+					posSiguiente = i
+					break
+				}
+			}
+
+			//si hay una particion despues
+			if posSiguiente != -1 {
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//obtengo el star de la posicion siguiente
+				starSiguiente := misParticionesLogicas[posSiguiente].Start
+				//opero para que me de el espacio que hay entre las dos
+				espacioDisponible := starSiguiente - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//se puede agregar espacio
+					newTamanaio := tamanioParticion + add
+					misParticionesLogicas[posicionLogica].Tamanio = newTamanaio
+				}
+
+				//si no hay particion despues
+			} else if posSiguiente == -1 {
+				//obtengo el star de la extendida
+				starExtend := misParticiones[posicionExtendida].Start
+				//obtengo el tamanio de extendida
+				tamExtend := misParticiones[posicionExtendida].Tamanio
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//opero para que me del el espacio disponible
+				espacioDisponible := (starExtend + tamExtend) - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//se puede agregar espacio
+					newTamanaio := tamanioParticion + add
+					misParticionesLogicas[posicionLogica].Tamanio = newTamanaio
+				}
+			}
+
+			//se quitara espacio
+		} else if add < 0 {
+			//obtenemos tamanio de particion que le queremos quitar espacio
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//es suma porque el size viene negativo
+			nuevoTamanio := tamanioParticion + add
+			//validamos
+			if nuevoTamanio >= 1 {
+				misParticionesLogicas[posicionLogica].Tamanio = nuevoTamanio
+			}
+		}
+
+		//si hay que agregar en la ultima posicion
+	} else if posicionLogica == (len(misParticionesLogicas) - 1) {
+
+		//si hay que agregar espacio
+		if add >= 0 {
+			//obtengo el star de la extendida
+			starExtend := misParticiones[posicionExtendida].Start
+			//obtengo el tamanio de extendida
+			tamExtend := misParticiones[posicionExtendida].Tamanio
+			//obtengo el star de la particion a la que le quiero agregar
+			starActual := misParticionesLogicas[posicionLogica].Start
+			//obtengo el tamanio de la particon a la que le quiero agregar
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//opero para que me del el espacio disponible
+			espacioDisponible := (starExtend + tamExtend) - (starActual + tamanioParticion)
+			//valido
+			if espacioDisponible >= add {
+				//se puede agregar espacio
+				newTamanaio := tamanioParticion + add
+				misParticionesLogicas[posicionLogica].Tamanio = newTamanaio
+			}
+
+			//si hay que quitar espacio
+		} else if add < 0 {
+			//obtenemos tamanio de particion que le queremos quitar espacio
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//es suma porque el size viene negativo
+			nuevoTamanio := tamanioParticion + add
+			//validamos
+			if nuevoTamanio >= 1 {
+				misParticionesLogicas[posicionLogica].Tamanio = nuevoTamanio
+			}
+		}
+
+		//no es la primera ni la ultima posicion (puede ser dos o tres)
+	} else {
+		if add >= 0 {
+
+			//buscando particion siguiente
+			posSiguiente := -1
+			for i := posicionLogica + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar una despues en la que se va agregar
+				//si encuantra despues una particion, guardo posicion donde la encuentra
+				if misParticionesLogicas[i].Tamanio != 0 {
+					posSiguiente = i
+					break
+				}
+			}
+
+			//tenga siguiente
+			if posSiguiente != -1 {
+				//star siguiente
+				starSiguiente := misParticionesLogicas[posSiguiente].Start
+				//star acutal
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//tamanio actual
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//espacio libre
+				espacioDisponible := starSiguiente - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//se puede agregar espacio
+					newTamanaio := tamanioParticion + add
+					misParticionesLogicas[posicionLogica].Tamanio = newTamanaio
+				}
+
+				//no tenga siguiente
+			} else if posSiguiente == -1 {
+				//obtengo el star de la extendida
+				starExtend := misParticiones[posicionExtendida].Start
+				//obtengo el tamanio de extendida
+				tamExtend := misParticiones[posicionExtendida].Tamanio
+				//obtengo el star de la particion a la que le quiero agregar
+				starActual := misParticionesLogicas[posicionLogica].Start
+				//obtengo el tamanio de la particon a la que le quiero agregar
+				tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+				//opero para que me del el espacio disponible
+				espacioDisponible := (starExtend + tamExtend) - (starActual + tamanioParticion)
+				//valido
+				if espacioDisponible >= add {
+					//se puede agregar espacio
+					newTamanaio := tamanioParticion + add
+					misParticionesLogicas[posicionLogica].Tamanio = newTamanaio
+				}
+			}
+
+		} else if add < 0 {
+			//obtenemos tamanio de particion que le queremos quitar espacio
+			tamanioParticion := misParticionesLogicas[posicionLogica].Tamanio
+			//es suma porque el size viene negativo
+			nuevoTamanio := tamanioParticion + add
+			//validamos
+			if nuevoTamanio >= 1 {
+				//se puede agregar espacio
+				misParticionesLogicas[posicionLogica].Tamanio = nuevoTamanio
+			}
+		}
+	}
+
+	fmt.Println("\nADD O DELETE LOGICA:")
+	for i := 0; i < len(misParticionesLogicas); i++ {
+		fmt.Println("	arr pos ", i, " Tamanio : ", misParticionesLogicas[i].Tamanio, " Star: ", misParticionesLogicas[i].Start, " Next: ", misParticionesLogicas[i].Next, " Tipo: ", string(misParticionesLogicas[i].TipoParticion))
+	}
+
+	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
+	//cuando se crea una nueva particion logica se agregan a 'misParticionesLogicas'
+	//entonces 'misParticionesLogicas' tienen las actuales, mas la que se modifico tamanio
+	//por eso se iguala de nuevo, para que 'misParticiones[posicionExtendida].ParticionesLogicas', se guarden particiones ya actualizadas
+	misParticiones[posicionExtendida].ParticionesLogicas = misParticionesLogicas
+
+	//para que se actualice nada mas
+	m.Particiones = misParticiones
+
+	file.Seek(0, 0)
+	s1 := &m
+
+	//Reescribimos struct (MBR)
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s1)
+	escribirBytes(file, binario3.Bytes())
+
+}
+
 //Función que lee del archivo, se especifica cuantos bytes se quieren leer.
 func leerBytesFdisk(file *os.File, number int) []byte {
 	bytes := make([]byte, number) //array de bytes, de tamanio que recibe
@@ -2221,6 +2725,45 @@ func mountComando(index int) {
 
 func montarParticion(path string, name string) {
 
+}
+
+func generarID(path string) {
+}
+
+func pruebaMount() {
+	mapa := make(map[string][]NodoMount)
+
+	uno := NodoMount{}
+	uno.Path = "/home/"
+	uno.Name = "Part1"
+	uno.NumID = "vda1"
+
+	dos := NodoMount{}
+	dos.Path = "/home/gudiel"
+	dos.Name = "Part2"
+	dos.NumID = "vda2"
+
+	mapa["aja"] = append(mapa["aja"], uno)
+	mapa["aja"] = append(mapa["aja"], dos)
+	mapa["aja2"] = append(mapa["aja2"], dos)
+
+	//imprimiendo IDs
+	for i := 0; i < len(mapa["aja"]); i++ {
+		fmt.Println(mapa["aja"][i])
+	}
+
+	//existe
+	exist := mapa["aja"]
+	if exist != nil {
+		fmt.Println("existe")
+	} else {
+		fmt.Println("no existe")
+	}
+
+	//tamanio
+	fmt.Println(len(mapa["aja"]))
+	fmt.Println(len(mapa["aja2"]))
+	fmt.Println(len(mapa["aja3"]))
 }
 
 //-------------------------------FIN MOUNT-------------------------------//
