@@ -20,7 +20,19 @@ import (
 func main() {
 	//leerEntrada()
 	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
+
+	generarIDMount("/home", "part1")
+	generarIDMount("/home", "part2")
+	generarIDMount("/home", "part3")
+	generarIDMount("/home", "part4")
+	generarIDMount("/home/gudiel", "part1")
+	generarIDMount("/home/gudiel", "part2")
+	generarIDMount("/home/gudiel", "part3")
+	generarIDMount("/home/gudiel/si", "part1")
+	generarIDMount("/home/gudiel/s2", "part1")
+
 	pruebaMount()
+
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
@@ -63,9 +75,9 @@ type NodoParticionLogica struct {
 
 //NodoMount ,
 type NodoMount struct {
-	Path  string
-	Name  string
-	NumID string
+	Path   string
+	Name   string
+	PartID string
 }
 
 //--------------------------------FINAL ESTRUCTURAS-------------------------------//
@@ -2727,7 +2739,162 @@ func montarParticion(path string, name string) {
 
 }
 
-func generarID(path string) {
+func generarIDMount(path string, name string) {
+
+	cadena := "vd"
+
+	//verificar si existe
+	existe := mapaMount[path]
+	if existe != nil {
+
+		//obtengo el indice, para saber que letra se le pone
+		indice := 0
+		var miArray []NodoMount
+		i := -1
+		for k, v := range mapaMount {
+			i++
+			if strings.Compare(strings.ToLower(k), strings.ToLower(path)) == 0 {
+				indice = i  //obtengo indice
+				miArray = v //obtengo array donde estan ids
+			}
+		}
+
+		letra := indice
+
+		if letra == 0 {
+			cadena += "a"
+		} else if letra == 1 {
+			cadena += "b"
+		} else if letra == 2 {
+			cadena += "c"
+		} else if letra == 3 {
+			cadena += "d"
+		} else if letra == 4 {
+			cadena += "e"
+		} else if letra == 5 {
+			cadena += "f"
+		} else if letra == 6 {
+			cadena += "g"
+		} else if letra == 7 {
+			cadena += "h"
+		} else if letra == 8 {
+			cadena += "i"
+		} else if letra == 9 {
+			cadena += "j"
+		} else if letra == 10 {
+			cadena += "k"
+		} else if letra == 11 {
+			cadena += "l"
+		} else if letra == 12 {
+			cadena += "m"
+		} else if letra == 13 {
+			cadena += "n"
+		} else if letra == 14 {
+			cadena += "o"
+		} else if letra == 15 {
+			cadena += "p"
+		} else if letra == 16 {
+			cadena += "q"
+		} else if letra == 17 {
+			cadena += "r"
+		} else if letra == 18 {
+			cadena += "s"
+		} else if letra == 19 {
+			cadena += "t"
+		} else if letra == 20 {
+			cadena += "u"
+		} else if letra == 21 {
+			cadena += "v"
+		} else if letra == 22 {
+			cadena += "w"
+		} else if letra == 23 {
+			cadena += "x"
+		} else if letra == 24 {
+			cadena += "y"
+		} else if letra == 25 {
+			cadena += "z"
+		}
+
+		numParticion := len(miArray) + 1
+		cadena += strconv.Itoa(numParticion)
+
+		newMount := NodoMount{}
+		newMount.Path = path
+		newMount.Name = name
+		newMount.PartID = cadena
+
+		mapaMount[path] = append(mapaMount[path], newMount)
+
+	} else {
+
+		//se obtiene tamanio para generar la letra
+		letra := len(mapaMount)
+
+		if letra == 0 {
+			cadena += "a"
+		} else if letra == 1 {
+			cadena += "b"
+		} else if letra == 2 {
+			cadena += "c"
+		} else if letra == 3 {
+			cadena += "d"
+		} else if letra == 4 {
+			cadena += "e"
+		} else if letra == 5 {
+			cadena += "f"
+		} else if letra == 6 {
+			cadena += "g"
+		} else if letra == 7 {
+			cadena += "h"
+		} else if letra == 8 {
+			cadena += "i"
+		} else if letra == 9 {
+			cadena += "j"
+		} else if letra == 10 {
+			cadena += "k"
+		} else if letra == 11 {
+			cadena += "l"
+		} else if letra == 12 {
+			cadena += "m"
+		} else if letra == 13 {
+			cadena += "n"
+		} else if letra == 14 {
+			cadena += "o"
+		} else if letra == 15 {
+			cadena += "p"
+		} else if letra == 16 {
+			cadena += "q"
+		} else if letra == 17 {
+			cadena += "r"
+		} else if letra == 18 {
+			cadena += "s"
+		} else if letra == 19 {
+			cadena += "t"
+		} else if letra == 20 {
+			cadena += "u"
+		} else if letra == 21 {
+			cadena += "v"
+		} else if letra == 22 {
+			cadena += "w"
+		} else if letra == 23 {
+			cadena += "x"
+		} else if letra == 24 {
+			cadena += "y"
+		} else if letra == 25 {
+			cadena += "z"
+		}
+
+		numParticion := len(mapaMount[path]) + 1
+		cadena += strconv.Itoa(numParticion)
+
+		newMount := NodoMount{}
+		newMount.Path = path
+		newMount.Name = name
+		newMount.PartID = cadena
+
+		mapaMount[path] = append(mapaMount[path], newMount)
+	}
+
 }
 
 func pruebaMount() {
@@ -2736,12 +2903,12 @@ func pruebaMount() {
 	uno := NodoMount{}
 	uno.Path = "/home/"
 	uno.Name = "Part1"
-	uno.NumID = "vda1"
+	uno.PartID = "vda1"
 
 	dos := NodoMount{}
 	dos.Path = "/home/gudiel"
 	dos.Name = "Part2"
-	dos.NumID = "vda2"
+	dos.PartID = "vda2"
 
 	mapa["aja"] = append(mapa["aja"], uno)
 	mapa["aja"] = append(mapa["aja"], dos)
@@ -2760,10 +2927,18 @@ func pruebaMount() {
 		fmt.Println("no existe")
 	}
 
+	for k := range mapa {
+		fmt.Println("key: ", k, " ")
+	}
+
 	//tamanio
 	fmt.Println(len(mapa["aja"]))
 	fmt.Println(len(mapa["aja2"]))
 	fmt.Println(len(mapa["aja3"]))
+
+	for k, v := range mapaMount {
+		fmt.Println("key: ", k, " ---> ", v)
+	}
 }
 
 //-------------------------------FIN MOUNT-------------------------------//
