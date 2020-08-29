@@ -18,10 +18,10 @@ import (
 )
 
 func main() {
-	//leerEntrada()
+	leerEntrada()
 	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
 
-	generarIDMount("/home", "part1")
+	/*generarIDMount("/home", "part1")
 	generarIDMount("/home", "part2")
 	generarIDMount("/home", "part3")
 	generarIDMount("/home", "part4")
@@ -29,9 +29,9 @@ func main() {
 	generarIDMount("/home/gudiel", "part2")
 	generarIDMount("/home/gudiel", "part3")
 	generarIDMount("/home/gudiel/si", "part1")
-	generarIDMount("/home/gudiel/s2", "part1")
+	generarIDMount("/home/gudiel/s2", "part1")*/
 
-	pruebaMount()
+	//pruebaMount()
 
 }
 
@@ -301,6 +301,10 @@ func logica() {
 			rmdiskComando(i)
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "fdisk") == 0 {
 			fdiskComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mount") == 0 {
+			mountComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unmount") == 0 {
+			unmountComando(i)
 		}
 	}
 }
@@ -363,7 +367,7 @@ func lecturaLineaLineaDeArchivo(texto string) {
 					logica()
 					vaciarListaComandos()
 					caracteres = ""
-					fmt.Print("\n[ pause: presione 'enter' ]")
+					fmt.Println("\n[ pause: presione 'enter' ]")
 					bufio.NewReader(os.Stdin).ReadBytes('\n')
 				}
 
@@ -500,6 +504,11 @@ func crearArchivo(size int, path string, name string, unit string) {
 	var binario3 bytes.Buffer
 	binary.Write(&binario3, binary.BigEndian, s1)
 	escribirBytes(file, binario3.Bytes())
+
+	fmt.Println("DISCO CREADO CORRECTAMENTE:")
+	fmt.Println("	Nombre: ", name)
+	fmt.Println("	Ruta: ", ruta)
+	fmt.Println("	Tamanio: ", size, " bytes")
 
 }
 
@@ -2736,10 +2745,30 @@ func mountComando(index int) {
 }
 
 func montarParticion(path string, name string) {
+	//no vienen parametros, mostrara particiones montadas
+	if strings.Compare(path, "") == 0 && strings.Compare(path, "") == 0 {
+		//muestra particiones montadas
+		mostrarMount()
+	} else {
+		//si es particion primaria o extend
+		if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
+			generarIDMountYGuardar(path, name)
+			fmt.Println("SE MONTO PARTICION:")
+			fmt.Println("	Nombre: ", name)
+			//si es particion logica
+		} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
+			generarIDMountYGuardar(path, name)
+			fmt.Println("SE MONTO PARTICION:")
+			fmt.Println("	Nombre: ", name)
+		} else {
+			fmt.Print("\n[ ERROR: no se puede montar particion con nombre: ", name, " porque no existe ]")
+		}
+
+	}
 
 }
 
-func generarIDMount(path string, name string) {
+func generarIDMountYGuardar(path string, name string) {
 
 	cadena := "vd"
 
@@ -2897,6 +2926,23 @@ func generarIDMount(path string, name string) {
 
 }
 
+func mostrarMount() {
+
+	fmt.Println("PARTICIONES MONTADAS:")
+
+	for k, v := range mapaMount {
+		//fmt.Println("key: ", k, " ---> ", v)
+		array := v
+		//recorro array de mount
+		for i := 0; i < len(array); i++ {
+			miMount := array[i]
+			if strings.Compare(miMount.PartID, "eliminado") != 0 { //para que no muestra las particiones ya eliminadas
+				fmt.Println("	id-> ", miMount.PartID, " path-> ", k, " name-> ", miMount.Name)
+			}
+		}
+	}
+}
+
 func pruebaMount() {
 	mapa := make(map[string][]NodoMount)
 
@@ -2910,9 +2956,14 @@ func pruebaMount() {
 	dos.Name = "Part2"
 	dos.PartID = "vda2"
 
+	tres := NodoMount{}
+	tres.Path = "/home/gudiel"
+	tres.Name = "Part3"
+	tres.PartID = "vdb2"
+
 	mapa["aja"] = append(mapa["aja"], uno)
 	mapa["aja"] = append(mapa["aja"], dos)
-	mapa["aja2"] = append(mapa["aja2"], dos)
+	mapa["aja2"] = append(mapa["aja2"], tres)
 
 	//imprimiendo IDs
 	for i := 0; i < len(mapa["aja"]); i++ {
@@ -2934,26 +2985,46 @@ func pruebaMount() {
 	//tamanio
 	fmt.Println(len(mapa["aja"]))
 	fmt.Println(len(mapa["aja2"]))
-	fmt.Println(len(mapa["aja3"]))
 
-	for k, v := range mapaMount {
+	fmt.Println("ANTES DE ELIMINAR")
+	for k, v := range mapa {
 		fmt.Println("key: ", k, " ---> ", v)
 	}
+
+	part := "vda2"
+
+	fmt.Println("\naaja")
+	for k := range mapa { //recorre todas las path que hay en el mapa
+		for i := 0; i < len(mapa[k]); i++ { //recorre el array mount, del path actual
+			mountAcutal := mapa[k][i] //mount actual
+			if strings.Compare(strings.ToLower(mountAcutal.PartID), strings.ToLower(part)) == 0 {
+				//elimino
+				vacioMount := NodoMount{}
+				mapa[k][i] = vacioMount
+			}
+		}
+	}
+
+	fmt.Println("DESPUES DE ELIMINAR")
+	for k, v := range mapa {
+		fmt.Println("key: ", k, " ---> ", v)
+	}
+
 }
 
 //-------------------------------FIN MOUNT-------------------------------//
 
 //-------------------------------INICIO UNMOUNT-------------------------------//
 func unmountComando(index int) {
-	idn := ""
+	var idn []string
 
 	for i := index; i < len(listaComandos); i++ {
 
-		if strings.Compare(strings.ToLower(listaComandos[i]), "idn") == 0 {
+		if strings.Contains(strings.ToLower(listaComandos[i]), "id") {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
-				idn = listaComandos[i+2] //name
+				idn = append(idn, listaComandos[i+2]) //name
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MOUNT' -> 'name' ]")
+				fmt.Print("\n[ ERROR: comando 'UNMOUNT' -> 'idn' ]")
 			}
 		}
 	}
@@ -2961,8 +3032,30 @@ func unmountComando(index int) {
 	desmontarParticion(idn)
 }
 
-func desmontarParticion(path string) {
+func desmontarParticion(ids []string) {
 
+	for x := 0; x < len(ids); x++ {
+		bandera := false
+		idEliminar := ids[x]
+
+		for k := range mapaMount { //recorre todas las path que hay en el mapa
+			for i := 0; i < len(mapaMount[k]); i++ { //recorre el array mount, del path actual
+				mountAcutal := mapaMount[k][i] //mount actual
+				if strings.Compare(strings.ToLower(mountAcutal.PartID), strings.ToLower(idEliminar)) == 0 {
+					//elimino
+					vacioMount := NodoMount{}
+					vacioMount.PartID = "eliminado"
+					mapaMount[k][i] = vacioMount
+					fmt.Println("[ Se desmonto particion con nombre: ", idEliminar, " ]")
+					bandera = true
+				}
+			}
+		}
+
+		if bandera == false {
+			fmt.Print("\n[ ERROR: no se puede desmontar particion con nombre: ", idEliminar, " porque no existe ]")
+		}
+	}
 }
 
 //-------------------------------FIN MOUNT-------------------------------//
