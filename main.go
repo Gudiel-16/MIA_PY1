@@ -21,17 +21,9 @@ func main() {
 	leerEntrada()
 	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
 
-	/*generarIDMount("/home", "part1")
-	generarIDMount("/home", "part2")
-	generarIDMount("/home", "part3")
-	generarIDMount("/home", "part4")
-	generarIDMount("/home/gudiel", "part1")
-	generarIDMount("/home/gudiel", "part2")
-	generarIDMount("/home/gudiel", "part3")
-	generarIDMount("/home/gudiel/si", "part1")
-	generarIDMount("/home/gudiel/s2", "part1")*/
-
 	//pruebaMount()
+	//m := mbr{}
+	//fmt.Println(int(unsafe.Sizeof(m)))
 
 }
 
@@ -58,8 +50,8 @@ type NodoParticion struct {
 	TipoAjuste         [2]byte
 	Tamanio            int64
 	Name               [16]byte
-	ParticionesLogicas [5]NodoParticionLogica //sera funcional solo para las extendidas
-	Start              int64                  //byte donde inicia la particion
+	ParticionesLogicas [15]NodoParticionLogica //sera funcional solo para las extendidas
+	Start              int64                   //byte donde inicia la particion
 }
 
 //NodoParticionLogica ,
@@ -681,7 +673,7 @@ func agregarParticion(size int64, unit string, path string, typee string, fit st
 			//si es primaria
 			if strings.Compare(strings.ToLower(typee), "p") == 0 {
 				//si el disco aun tiene espacio
-				if validarQueTengaEspacioElDisco(path, size, unit) {
+				if validarSiHayEspacioEnAlgunaPosicionPrimariaExtendida(path, size, unit) != -1 {
 					//inserta particion primaria
 					insertarParticionPrimaria(path, size, typee, fit, name, unit)
 				} else {
@@ -692,7 +684,7 @@ func agregarParticion(size int64, unit string, path string, typee string, fit st
 				//si aun no existe una extendida
 				if validarSiExisteParticionExtendida(path) == false {
 					//si el disco aun tiene espacio
-					if validarQueTengaEspacioElDisco(path, size, unit) {
+					if validarSiHayEspacioEnAlgunaPosicionPrimariaExtendida(path, size, unit) != -1 {
 						//inserta particion extendida
 						insertarParticionExtendida(path, size, typee, fit, name, unit)
 					} else {
@@ -820,8 +812,8 @@ func validarQueTengaEspacioElDisco(path string, sizeParticion int64, unit string
 		}
 	}
 
-	//espacio disponible = (tamanio disco) - (espacio actual de todas las particiones)
-	var espacioDisponible int64 = int64(m.Tamanio) - contadorSize
+	//espacio disponible = (tamanio disco) - (espacio actual de todas las particiones) - (lo que ocupa el mbr)
+	var espacioDisponible int64 = int64(m.Tamanio) - contadorSize - int64(size)
 
 	//si hay espacio aun
 	if sizeParticion <= espacioDisponible {
@@ -831,8 +823,169 @@ func validarQueTengaEspacioElDisco(path string, sizeParticion int64, unit string
 	return false
 }
 
+//valida si hay espacio, en el lugar que encuentra vacio
+//si la posicion 2 esta vacia por ejemplo, valida que quepa ahi la particion
+func validarSiHayEspacioEnAlgunaPosicionPrimariaExtendida(path string, sizeParticion int64, unit string) int {
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		sizeParticion = sizeParticion * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		sizeParticion = sizeParticion * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//recorro para sumar todos los byte de las particiones
+	for x := 0; x < 4; x++ {
+		actual := misParticiones[x]
+		//si encuentra una vacia
+		if actual.Tamanio == 0 {
+
+			//si es la posicion 0
+			if x == 0 {
+				//buscando particion siguiente
+				posSiguiente := -1
+				for i := x + 1; i < 4; i++ { //empieza a buscar una despues de la que se va eliminar
+					//si encuantra despues una particion, guardo posicion donde la encuentra
+					if misParticiones[i].Tamanio != 0 {
+						posSiguiente = i
+						break
+					}
+				}
+
+				//CASO 1: TENGA SIGUIENTE
+				if posSiguiente != -1 {
+					//star de siguiente
+					starSiguiente := misParticiones[posSiguiente].Start
+					// espacio = star siguiente - tamanio MBR
+					espacioDisponible := starSiguiente - int64(size)
+					if espacioDisponible >= sizeParticion {
+						return 0
+					}
+
+					//CASO 2: NO TENGA SIGUIENTE
+				} else if posSiguiente == -1 {
+					//tamanio disco
+					tamDisco := m.Tamanio
+					//espacio = tamanio disco - MBR
+					espacioDisponible := tamDisco - int64(size)
+					if espacioDisponible >= sizeParticion {
+						return 0
+					}
+				}
+
+				//si es la ultima posicion
+			} else if x == 3 {
+				//buscando particion anterior
+				posAnterior := -1
+				for i := x - 1; i > -1; i-- { //empieza a buscar una antes
+					//si encuantra antes una particion, guardo posicion donde la encuentra
+					if misParticiones[i].Tamanio != 0 {
+						posAnterior = i
+						break
+					}
+				}
+
+				//CASO 1: TENGA ANTERIOR
+				if posAnterior != -1 {
+					starAnterior := misParticiones[posAnterior].Start
+					tamAnterior := misParticiones[posAnterior].Tamanio
+					//espacio = disco - (star anterior + tamanio anterior)
+					espacioDisponible := m.Tamanio - (starAnterior + tamAnterior)
+					if espacioDisponible >= sizeParticion {
+						return x
+					}
+
+					//CASO 2: NO TIENE ANTERIOR
+				} else if posAnterior == -1 {
+					//no retornara nada, porque si hubiera espacio antes, ahi se hubiera insertado
+				}
+
+				//es 1 o 2
+			} else {
+				//buscando particion siguiente
+				posSiguiente := -1
+				for i := x + 1; i < 4; i++ { //empieza a buscar una despues de la que se va eliminar
+					//si encuantra despues una particion, guardo posicion donde la encuentra
+					if misParticiones[i].Tamanio != 0 {
+						posSiguiente = i
+						break
+					}
+				}
+
+				//buscando particion anterior
+				posAnterior := -1
+				for i := x - 1; i > -1; i-- { //empieza a buscar una antes
+					//si encuantra antes una particion, guardo posicion donde la encuentra
+					if misParticiones[i].Tamanio != 0 {
+						posAnterior = i
+						break
+					}
+				}
+
+				//CASO 1: TENGA ANTERIOR Y NO SIGUIENTE
+				if posAnterior != -1 && posSiguiente == -1 {
+					starAnterior := misParticiones[posAnterior].Start
+					tamAnterior := misParticiones[posAnterior].Tamanio
+					//espacio = disco - (star anterior + tamanio anterior)
+					espacioDisponible := m.Tamanio - (starAnterior + tamAnterior)
+					if espacioDisponible >= sizeParticion {
+						return x
+					}
+
+					//CASO 2: TENGA SIGUIENTE Y NO ANTERIOR
+				} else if posSiguiente != -1 && posAnterior == -1 {
+					// no retorna nada porque sino se hubiera insertado en alguna posicion anterior
+
+					//CASO 3: TIENE SIGUIENTE Y TIENE ANTERIOR
+				} else if posSiguiente != -1 && posAnterior != -1 {
+					starSiguiente := misParticiones[posSiguiente].Start
+					starAnterior := misParticiones[posAnterior].Start
+					tamAnterior := misParticiones[posAnterior].Tamanio
+					//espacio = star siguiente - (star anterior + tamanio anterior)
+					espacioDisponible := starSiguiente - (starAnterior + tamAnterior)
+					if espacioDisponible >= sizeParticion {
+						return x
+					}
+				}
+			}
+		}
+	}
+
+	return -1
+}
+
 //inserta particion primaria en el disco
 func insertarParticionPrimaria(path string, sizePart int64, typee string, fit string, name string, unit string) {
+
+	//el metodo 'validarSiHayEspacioEnAlgunaPosicionPrimariaExtendida' hace su propia conversion a bytes, por eso se le envia la original
+	sizeAntesDeCombertir := sizePart
 
 	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
 	if strings.Compare(strings.ToLower(unit), "k") == 0 {
@@ -870,16 +1023,17 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 	misParticiones := m.Particiones
 
 	//para ver la posicion vacia
-	contador := 0
+	contador := validarSiHayEspacioEnAlgunaPosicionPrimariaExtendida(path, sizeAntesDeCombertir, unit)
 
-	//recorro para ver cuual esta vacia
-	for i := 0; i < 4; i++ {
-		actual := misParticiones[i]
-		if actual.Tamanio == 0 {
-			contador = i
-			break
-		}
-	}
+	/*
+		//recorro para ver cuual esta vacia
+		for i := 0; i < 4; i++ {
+			actual := misParticiones[i]
+			if actual.Tamanio == 0 {
+				contador = i
+				break
+			}
+		}*/
 
 	//se inserta despues del MBR
 	if contador == 0 {
@@ -1152,7 +1306,7 @@ func validarQueTengaEspacioParticionExtendida(path string, sizeParticion int64, 
 	var contadorSize int64 = 0
 
 	//recorro para sumar todos los byte de las particiones
-	for i := 0; i < 5; i++ {
+	for i := 0; i < len(misParticionesLogicas); i++ {
 		actual := misParticionesLogicas[i]
 		if actual.Tamanio != 0 {
 			contadorSize = contadorSize + int64(actual.Tamanio)
@@ -1224,7 +1378,7 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 	posicionLogicaVacia := 0
 
 	//recorro para ver cuual esta vacia
-	for i := 0; i < 5; i++ {
+	for i := 0; i < len(misParticionesLogicas); i++ {
 		actual := misParticionesLogicas[i]
 		if actual.Tamanio == 0 {
 			posicionLogicaVacia = i
@@ -1237,7 +1391,7 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 
 		//buscando particion siguiente
 		posSiguiente := -1
-		for i := posicionLogicaVacia + 1; i < 5; i++ { //empieza a buscar desde la posicion 1, y que insertara en la posicion 0
+		for i := posicionLogicaVacia + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar desde la posicion 1, y que insertara en la posicion 0
 			//si encuantra despues una particion, guardo posicion donde la encuentra
 			if misParticionesLogicas[i].Tamanio != 0 {
 				posSiguiente = i
@@ -1300,7 +1454,7 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 
 		//buscando particion siguiente
 		posSiguiente := -1
-		for i := posicionLogicaVacia + 1; i < 5; i++ { //empieza a buscar una despues de la que se va eliminar
+		for i := posicionLogicaVacia + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar una despues de la que se va eliminar
 			//si encuantra despues una particion, guardo posicion donde la encuentra
 			if misParticionesLogicas[i].Tamanio != 0 {
 				posSiguiente = i
@@ -1368,11 +1522,9 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 	}
 
 	fmt.Println("\nINSERTO LOGICA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticionesLogicas[0].Tamanio, " Star: ", misParticionesLogicas[0].Start, " Next: ", misParticionesLogicas[0].Next, " Tipo: ", string(misParticionesLogicas[0].TipoParticion))
-	fmt.Println("	arr pos 1 Tamanio : ", misParticionesLogicas[1].Tamanio, " Star: ", misParticionesLogicas[1].Start, " Next: ", misParticionesLogicas[1].Next, " Tipo: ", string(misParticionesLogicas[1].TipoParticion))
-	fmt.Println("	arr pos 2 Tamanio : ", misParticionesLogicas[2].Tamanio, " Star: ", misParticionesLogicas[2].Start, " Next: ", misParticionesLogicas[2].Next, " Tipo: ", string(misParticionesLogicas[2].TipoParticion))
-	fmt.Println("	arr pos 3 Tamanio : ", misParticionesLogicas[3].Tamanio, " Star: ", misParticionesLogicas[3].Start, " Next: ", misParticionesLogicas[3].Next, " Tipo: ", string(misParticionesLogicas[3].TipoParticion))
-	fmt.Println("	arr pos 4 Tamanio : ", misParticionesLogicas[4].Tamanio, " Star: ", misParticionesLogicas[4].Start, " Next: ", misParticionesLogicas[4].Next, " Tipo: ", string(misParticionesLogicas[4].TipoParticion))
+	for i := 0; i < len(misParticionesLogicas); i++ {
+		fmt.Println("	arr pos ", i, " Tamanio : ", misParticionesLogicas[i].Tamanio, " Star: ", misParticionesLogicas[i].Start, " Next: ", misParticionesLogicas[i].Next, " Tipo: ", string(misParticionesLogicas[i].TipoParticion))
+	}
 
 	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
 	//cuando se crea una nueva particion logica se agregan a 'misParticionesPrimarias'
@@ -1574,7 +1726,7 @@ func validarSiExisteParticionLogicaConNombreEspecifico(path string, name string)
 	existe := false
 
 	//recorro para ver si existe nombre
-	for i := 0; i < 5; i++ {
+	for i := 0; i < len(misParticionesLogicas); i++ {
 		actual := misParticionesLogicas[i]
 
 		//eliminando espacios en blanco o nulos del name
@@ -1644,7 +1796,7 @@ func eliminarParticionLogica(path string, name string) {
 	posicionLogica := 0
 
 	//recorro para ver si existe nombre
-	for i := 0; i < 5; i++ {
+	for i := 0; i < len(misParticionesLogicas); i++ {
 		actual := misParticionesLogicas[i]
 
 		//eliminando espacios en blanco o nulos del name
@@ -1670,10 +1822,10 @@ func eliminarParticionLogica(path string, name string) {
 		misParticionesLogicas[posicionLogica] = particionLogicaNew
 
 		//si la particiona eliminar esta en la ultima posicion
-	} else if posicionLogica == 4 {
+	} else if posicionLogica == len(misParticionesLogicas)-1 {
 		//buscando particion anterior
 		posAnterior := -1
-		for i := 3; i > -1; i-- {
+		for i := len(misParticionesLogicas) - 2; i > -1; i-- {
 			//si encuantra antes una particion, guardo posicion donde la encuentra
 			if misParticionesLogicas[i].Tamanio != 0 {
 				posAnterior = i
@@ -1705,7 +1857,7 @@ func eliminarParticionLogica(path string, name string) {
 
 		//buscando particion siguiente
 		posSiguiente := -1
-		for i := posicionLogica + 1; i < 5; i++ { //empieza a buscar una despues de la que se va eliminar
+		for i := posicionLogica + 1; i < len(misParticionesLogicas); i++ { //empieza a buscar una despues de la que se va eliminar
 			//si encuantra despues una particion, guardo posicion donde la encuentra
 			if misParticionesLogicas[i].Tamanio != 0 {
 				posSiguiente = i
