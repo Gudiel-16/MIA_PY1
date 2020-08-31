@@ -18,12 +18,13 @@ import (
 )
 
 func main() {
-	leerEntrada()
+	//leerEntrada()
 	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
 
 	//pruebaMount()
 	//m := mbr{}
 	//fmt.Println(int(unsafe.Sizeof(m)))
+	//fmt.Println(int(binary.Size(m)))
 
 }
 
@@ -706,6 +707,7 @@ func agregarParticion(size int64, unit string, path string, typee string, fit st
 			if validarSiHayEspacioEnAlgunaPosicionLogica(path, size, unit) != -1 {
 				//inserta particion logica
 				insertarParticionLogica(path, size, typee, fit, name, unit)
+				reposicionarLogicas(path, size, unit)
 			} else {
 				fmt.Print("\n[ ERROR: no hay espacio para agregar la particion logica: ", name, " ]")
 			}
@@ -1781,6 +1783,193 @@ func validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path string, n
 	}
 
 	return false
+
+}
+
+//esta funcion crea un espacio entre dos particiones, si la nueva particion cabe entre ellas
+func reposicionarLogicas(path string, sizeParticion int64, unit string) {
+
+	//se hace la convercion de kb a bytes, o mb a bytes, segun sea el caso
+	if strings.Compare(strings.ToLower(unit), "k") == 0 {
+		sizeParticion = sizeParticion * 1024
+	} else if strings.Compare(strings.ToLower(unit), "m") == 0 {
+		sizeParticion = sizeParticion * 1024 * 1024
+	}
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := 0
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+	//recorrera hasta una menos del tamanio de array
+	for i := 0; i < len(misParticionesLogicas)-1; i++ {
+
+		//si encuentra una particion logica
+		if misParticionesLogicas[i].Tamanio != 0 {
+			//si en la siguiente posicion hay una posicion logica
+			if misParticionesLogicas[i+1].Tamanio != 0 {
+				//calculo espacio entre ambas
+				starActual := misParticionesLogicas[i].Start
+				tamActual := misParticionesLogicas[i].Tamanio
+				starSiguiente := misParticionesLogicas[i+1].Start
+				//espacio = star siguiente - (star actual + tam actual)
+				espacio := starSiguiente - (starActual + tamActual)
+				//si hay espacio entre ambas
+				if espacio >= sizeParticion {
+
+					//quiere decir que el espacion esta entre la antepenultima y ultima particion
+					if (i + 1) == len(misParticionesLogicas) {
+						//buscando particion vacia anterior
+						posAnterior := -1
+						for x := i - 1; x > -1; x-- { //empieza a buscar una antes (i-1)
+							//si encuantra antes un espacio vacio
+							if misParticionesLogicas[x].Tamanio == 0 {
+								posAnterior = x
+								break
+							}
+						}
+
+						//quiere decir que encontro un espacio
+						if posAnterior != -1 {
+							for y := 0; y < i; y++ { //ira movimiento hasta la posicion de la particion donde encontro espacio ( < i )
+								//si esta en un espacio vacio
+								if misParticionesLogicas[y].Tamanio == 0 {
+									//si en la siguiente hay una particion
+									if misParticionesLogicas[y+1].Tamanio != 0 {
+										//reposicionamos posicion
+										vacio := NodoParticionLogica{}
+										misParticionesLogicas[y] = misParticionesLogicas[y+1]
+										misParticionesLogicas[y+1] = vacio
+									}
+								}
+							}
+						}
+
+						//quiere decir que el espacio entrea en la primera y segunda posicion
+					} else if i == 0 {
+						//buscando particion vacia siguiente
+						posSiguiente := -1
+						for x := i + 2; x < len(misParticionesLogicas); x++ { //empieza a buscar una despues, de las dos donde se encontro espacio
+							//si encuantra un espacio
+							if misParticionesLogicas[x].Tamanio == 0 {
+								posSiguiente = x
+								break
+							}
+						}
+
+						//si encontro un espacio
+						if posSiguiente != -1 {
+							for y := len(misParticionesLogicas) - 1; y > i+1; y-- { //empieza desde el ultimo
+								//si encuentra una vacia
+								if misParticionesLogicas[y].Tamanio == 0 {
+									//si la anterior no esta vacia
+									if misParticionesLogicas[y-1].Tamanio != 0 {
+										//reposicionamos posicion
+										vacio := NodoParticionLogica{}
+										misParticionesLogicas[y] = misParticionesLogicas[y-1]
+										misParticionesLogicas[y-1] = vacio
+									}
+								}
+							}
+						}
+					} else {
+						//buscando particion vacia siguiente
+						posSiguiente := -1
+						for x := i + 2; x < len(misParticionesLogicas); x++ { //empieza a buscar una despues, de las dos donde se encontro espacio
+							//si encuantra un espacio
+							if misParticionesLogicas[x].Tamanio == 0 {
+								posSiguiente = x
+								break
+							}
+						}
+
+						//buscando particion vacia anterior
+						posAnterior := -1
+						for x := i - 1; x > -1; x-- { //empieza a buscar una antes (i-1)
+							//si encuantra antes un espacio vacio
+							if misParticionesLogicas[x].Tamanio == 0 {
+								posAnterior = x
+								break
+							}
+						}
+
+						//si hay una posicion vacia despues
+						if posSiguiente != -1 {
+							for y := len(misParticionesLogicas) - 1; y > i+1; y-- { //empieza desde el ultimo
+								//si encuentra una vacia
+								if misParticionesLogicas[y].Tamanio == 0 {
+									//si la anterior no esta vacia
+									if misParticionesLogicas[y-1].Tamanio != 0 {
+										//reposicionamos posicion
+										vacio := NodoParticionLogica{}
+										misParticionesLogicas[y] = misParticionesLogicas[y-1]
+										misParticionesLogicas[y-1] = vacio
+									}
+								}
+							}
+
+							//si hay una posicion vacia antes
+						} else if posAnterior != -1 {
+							for y := 0; y < i; y++ { //ira movimiento hasta la posicion de la particion donde encontro espacio ( < i )
+								//si esta en un espacio vacio
+								if misParticionesLogicas[y].Tamanio == 0 {
+									//si en la siguiente hay una particion
+									if misParticionesLogicas[y+1].Tamanio != 0 {
+										//reposicionamos posicion
+										vacio := NodoParticionLogica{}
+										misParticionesLogicas[y] = misParticionesLogicas[y+1]
+										misParticionesLogicas[y+1] = vacio
+									}
+								}
+							}
+						}
+					}
+
+				}
+			}
+		}
+
+	}
+
+	fmt.Println("\nREPOSICION LOGICA:")
+	for i := 0; i < len(misParticionesLogicas); i++ {
+		fmt.Println("	arr pos ", i, " Tamanio : ", misParticionesLogicas[i].Tamanio, " Star: ", misParticionesLogicas[i].Start, " Next: ", misParticionesLogicas[i].Next, " Tipo: ", string(misParticionesLogicas[i].TipoParticion))
+	}
 
 }
 
