@@ -18,9 +18,9 @@ import (
 )
 
 func main() {
-	leerEntrada()
-	//reporteMBR("/home/gudiel/Hoja1_201404278.dsk")
-
+	//leerEntrada()
+	//reporteMBR("/home/gudiel/Disco1.dsk")
+	reporteDisk("/home/gudiel/Disco1.dsk")
 	//pruebaMount()
 	//m := mbr{}
 	//fmt.Println(int(unsafe.Sizeof(m)))
@@ -71,6 +71,87 @@ type NodoMount struct {
 	Path   string
 	Name   string
 	PartID string
+}
+
+//SuperBoot ,
+type SuperBoot struct {
+	SbNombre                                     [16]byte
+	SbCantidadEstructurasArbolDirectorio         int64
+	SbCantidadEstructurasDetalleDirectorio       int64
+	SbCantidadInodos                             int64
+	SbCantidadBloques                            int64
+	SbCantidadEstructurasArbolDirectorioLibres   int64
+	SbCantidadEstructurasDetalleDirectorioLibres int64
+	SbCantidadInodosLibres                       int64
+	SbCantidadBloquesLibres                      int64
+	SbFechaCreacion                              [20]byte
+	SbFechaUltimoMontaje                         [20]byte
+	SbContadorMontajes                           int64
+	SbApInicioBitmapArbolDirectorio              int64
+	SbApInicioArbolDirectorio                    int64
+	SbApInicioBitmapDetalleDirectorio            int64
+	SbApInicioDetalleDirectorio                  int64
+	SbApInicioBitmapInodos                       int64
+	SbApInicioInodos                             int64
+	SbApInicioBitmapBloques                      int64
+	SbApInicioBloques                            int64
+	SbApInicioBitacora                           int64
+	SbTamanioEstructuraArbolDirectorio           int64
+	SbTamanioEstructuraDetalleDirectorio         int64
+	SbTamanioEstructuraInodo                     int64
+	SbTamanioEstructuraBloques                   int64
+	SbPrimerBitLibreArbolDirectorio              int64
+	SbPrimerBitLibreDetalleDirectorio            int64
+	SbPrimerBitLibreInodos                       int64
+	SbPrimerBitLibreBloques                      int64
+	SbMagigNum                                   int64
+}
+
+// ArbolVirtualDirectorio ,
+type ArbolVirtualDirectorio struct {
+	AvdNombreDirectorio    [16]byte
+	AvdFechaCreacion       [20]byte
+	AvdArraySubDirectorios [6]int64
+	AvdApDetalleDirectorio [5]int64
+	AvdApIndirecto         int64
+	AvdPropietario         [16]byte
+}
+
+// DetalleDirectorio ,
+type DetalleDirectorio struct {
+	DdArrayArchivosTXT [5]DetalleDirectorioArr
+	DdApIndirecto      int64
+}
+
+// DetalleDirectorioArr ,
+type DetalleDirectorioArr struct {
+	DdNombreArchivoTXT  [16]byte
+	DdApInodo           int64
+	DdFechaCreacion     [20]byte
+	DdFechaModificacion [20]byte
+}
+
+// Inodos ,
+type Inodos struct {
+	iNumeroInodo            int64
+	iTamanioArchivoTXT      int64
+	iNumeroBloquesAsignados int64
+	iApArrayBloques         [4]int64
+	iApIndirecto            int64
+	iPropietario            [16]byte
+}
+
+type bloque struct {
+	bInformacionArchivo [25]byte
+}
+
+// LogBitacora ,
+type LogBitacora struct {
+	LogTipoOperacion [20]byte
+	LogTipo          int64    // 0 si es archivo, 1 si es directorio
+	LogNombre        [20]byte //nombre archivo o directorio
+	LogContenido     [15]byte
+	LogFecha         [20]byte
 }
 
 //--------------------------------FINAL ESTRUCTURAS-------------------------------//
@@ -3914,26 +3995,76 @@ func reporteMBR(path string) {
 	cadenaRep += "<tr><td>MBR_Fecha</td><td>" + fechaMbr + "</td></tr>\n"
 	cadenaRep += "<tr><td>MBR_Asignacion</td><td>" + strconv.Itoa(int(m.NumAsignacion)) + "</td></tr>\n"
 
-	//r
+	//recorro las estructuras primarias o extendidas
 	for i := 0; i < 4; i++ {
 		actual := misParticiones[i]
 
 		if actual.Tamanio != 0 {
 
-			//eliminando espacios nulos
-			nombrePart := ""
-			for i := 0; i < 16; i++ {
-				if actual.Name[i] != 0 { //los que sean nulos no los concatena
-					nombrePart += string(actual.Name[i])
-				}
-			}
+			if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
 
-			cadenaRep += "<tr><td>" + nombrePart + "_Name</td><td>" + nombrePart + "</td></tr>\n"
-			cadenaRep += "<tr><td>" + nombrePart + "_Size</td><td>" + strconv.Itoa(int(actual.Tamanio)) + "</td></tr>\n"
-			cadenaRep += "<tr><td>" + nombrePart + "_Tipe</td><td>" + string(actual.TipoParticion) + "</td></tr>\n"
-			cadenaRep += "<tr><td>" + nombrePart + "_Fit</td><td>" + string(actual.TipoAjuste[:]) + "</td></tr>\n"
-			cadenaRep += "<tr><td>" + nombrePart + "_Start</td><td>" + strconv.Itoa(int(actual.Start)) + "</td></tr>\n"
-			cadenaRep += "<tr><td>" + nombrePart + "_Status</td><td>" + strconv.Itoa(int(actual.Estado)) + "</td></tr>\n"
+				//concateno atributos de particion extendida
+				//eliminando espacios nulos del nombre
+				nombrePart := ""
+				for x := 0; x < 16; x++ {
+					if actual.Name[x] != 0 { //los que sean nulos no los concatena
+						nombrePart += string(actual.Name[x])
+					}
+				}
+
+				cadenaRep += "<tr><td>" + nombrePart + "_Name</td><td>" + nombrePart + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Size</td><td>" + strconv.Itoa(int(actual.Tamanio)) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Tipe</td><td>" + string(actual.TipoParticion) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Fit</td><td>" + string(actual.TipoAjuste[:]) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Start</td><td>" + strconv.Itoa(int(actual.Start)) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Status</td><td>" + strconv.Itoa(int(actual.Estado)) + "</td></tr>\n"
+
+				//para las logicas
+				misParticionesLogicas := actual.ParticionesLogicas
+
+				//recorro las particiones logicas
+				for x := 0; x < len(misParticionesLogicas); x++ {
+					temp := misParticionesLogicas[x]
+
+					if temp.Tamanio != 0 {
+
+						//elimino espacios nulos del nombre
+						nombrePartLog := ""
+						for y := 0; y < 16; y++ {
+							if temp.Name[y] != 0 { //los que sean nulos no los concatena
+								nombrePartLog += string(temp.Name[y])
+							}
+						}
+
+						cadenaRep += "<tr><td>" + nombrePartLog + "_Name</td><td>" + nombrePartLog + "</td></tr>\n"
+						cadenaRep += "<tr><td>" + nombrePartLog + "_Size</td><td>" + strconv.Itoa(int(temp.Tamanio)) + "</td></tr>\n"
+						cadenaRep += "<tr><td>" + nombrePartLog + "_Tipe</td><td>" + string(temp.TipoParticion) + "</td></tr>\n"
+						cadenaRep += "<tr><td>" + nombrePartLog + "_Fit</td><td>" + string(temp.TipoAjuste[:]) + "</td></tr>\n"
+						cadenaRep += "<tr><td>" + nombrePartLog + "_Start</td><td>" + strconv.Itoa(int(temp.Start)) + "</td></tr>\n"
+						cadenaRep += "<tr><td>" + nombrePartLog + "_Status</td><td>" + strconv.Itoa(int(temp.Estado)) + "</td></tr>\n"
+
+					}
+				}
+
+				//para las primarias
+			} else {
+
+				//eliminando espacios nulos
+				nombrePart := ""
+				for x := 0; x < 16; x++ {
+					if actual.Name[x] != 0 { //los que sean nulos no los concatena
+						nombrePart += string(actual.Name[x])
+					}
+				}
+
+				cadenaRep += "<tr><td>" + nombrePart + "_Name</td><td>" + nombrePart + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Size</td><td>" + strconv.Itoa(int(actual.Tamanio)) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Tipe</td><td>" + string(actual.TipoParticion) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Fit</td><td>" + string(actual.TipoAjuste[:]) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Start</td><td>" + strconv.Itoa(int(actual.Start)) + "</td></tr>\n"
+				cadenaRep += "<tr><td>" + nombrePart + "_Status</td><td>" + strconv.Itoa(int(actual.Estado)) + "</td></tr>\n"
+
+			}
 		}
 	}
 
@@ -3943,6 +4074,394 @@ func reporteMBR(path string) {
 
 	crearDot("report_mbr", cadenaRep)
 	crearImg("report_mbr")
+}
+
+func reporteDisk(path string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el arreglo de particiones
+	misParticiones := m.Particiones
+
+	cadenaRep := "digraph { \n\n"
+	cadenaRep += "tbl [ \n\n"
+	cadenaRep += "shape=plaintext \n"
+	cadenaRep += "label=< \n\n"
+	cadenaRep += "<table border='0' cellborder='1' color='blue' cellspacing='0'>\n\n"
+
+	//para las primarias y extendida
+	//que dividiria asi -> |MBR|PRIMARIA|PRIMAR|EXTEND|LIBRE|PRIMAR|
+	cadenaRep += "<tr>\n\n"
+
+	//MBR
+	cadenaRep += "<td rowspan='2' bgcolor='yellow'>MBR</td>"
+
+	//verificando si hay particiones
+	hayParticion := false
+	for i := 0; i < len(misParticiones); i++ {
+		actual := misParticiones[i]
+		if actual.Tamanio != 0 {
+			hayParticion = true
+			break
+		}
+	}
+
+	//disco vacio
+	if hayParticion == false {
+
+		//concatenamos vacio despues del MBR
+		cadenaRep += "<td rowspan='2' bgcolor='yellow'>MBR</td><td rowspan='2' bgcolor='green'>LIBRE</td> </tr>"
+
+		//hay particion
+	} else {
+
+		for i := 0; i < len(misParticiones); i++ {
+
+			actual := misParticiones[i]
+
+			if actual.Tamanio != 0 {
+
+				//si es la posicion 0
+				if i == 0 {
+					tamMBR := size
+					starActual := misParticiones[i].Start
+					espacio := starActual - int64(tamMBR)
+					//si hay espacio libre
+					if espacio > 1 {
+						//si es primaria
+						if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+							//concateno la libre y la primaria
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+						} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+							//concateno la libre y la primaria
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+						}
+					} else {
+						//si es primaria
+						if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+							//concateno primaria
+							cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+						} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+							//concateno la libre y la primaria
+							cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+						}
+					}
+
+					//si es la ultima posicion
+				} else if i == len(misParticiones)-1 {
+
+					posAnterior := -1
+					for x := i - 1; x > -1; x-- { //empieza a buscar una antes
+						//si encuantra antes una particion, guardo posicion donde la encuentra
+						if misParticiones[x].Tamanio != 0 {
+							posAnterior = x
+							break
+						}
+					}
+
+					//si hay una particion antes
+					if posAnterior != -1 {
+						tamDisco := m.Tamanio
+						tamMBR := int64(size)
+						starAnterior := misParticiones[posAnterior].Start
+						tamAnterior := misParticiones[posAnterior].Tamanio
+						starActual := misParticiones[i].Start
+						tamActual := misParticiones[i].Tamanio
+
+						//espacio entre el anterior y el ultimo
+						espacio := starActual - (starAnterior + tamAnterior)
+						if espacio > 1 {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						} else {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno primaria
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						}
+
+						//espacio entre el ultimo y el disco
+						espacio2 := (tamDisco - tamMBR) - (starActual + tamActual)
+						if espacio2 > 1 {
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td>"
+						}
+
+						//si no hay una particion antes
+					} else if posAnterior == -1 {
+						tamDisco := m.Tamanio
+						tamMBR := int64(size)
+						starActual := misParticiones[i].Start
+						tamActual := misParticiones[i].Tamanio
+
+						espacio := starActual - tamMBR
+						if espacio > 1 {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						} else {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno primaria
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						}
+
+						//espacio entre el ultimo y el disco
+						espacio2 := (tamDisco - tamMBR) - (starActual + tamActual)
+						if espacio2 > 1 {
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td>"
+						}
+
+					}
+
+					//no es primera ni ultima
+				} else {
+
+					posAnterior := -1
+					for x := i - 1; x > -1; x-- { //empieza a buscar una antes
+						//si encuantra antes una particion, guardo posicion donde la encuentra
+						if misParticiones[x].Tamanio != 0 {
+							posAnterior = x
+							break
+						}
+					}
+
+					posSiguiente := -1
+					for x := i + 1; x < len(misParticiones); x++ { //empieza a buscar una despues, de las dos donde se encontro espacio
+						//si encuantra un espacio
+						if misParticiones[x].Tamanio != 0 {
+							posSiguiente = x
+							break
+						}
+					}
+
+					//tiene anterior pero no siguiente
+					if posAnterior != -1 && posSiguiente == -1 {
+						fmt.Println("ujuaa")
+						tamDisco := m.Tamanio
+						tamMBR := int64(size)
+						starAnterior := misParticiones[posAnterior].Start
+						tamAnterior := misParticiones[posAnterior].Tamanio
+						starActual := misParticiones[i].Start
+						tamActual := misParticiones[i].Tamanio
+
+						//espacio entre ambas
+						espacio := starActual - (starAnterior + tamAnterior)
+						if espacio > 1 {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						} else {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno primaria
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						}
+
+						//como no tiene siguiente
+						//espacio entre el ultimo y el disco
+						espacio2 := (tamDisco - tamMBR) - (starActual + tamActual)
+
+						if espacio2 > 1 {
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td>"
+						}
+
+						//no tiene anterior, pero si siguiente
+					} else if posAnterior == -1 && posSiguiente != -1 {
+
+						tamMBR := int64(size)
+						starActual := misParticiones[i].Start
+
+						//espacio entre MBR y actual
+						espacio := starActual - tamMBR
+						if espacio > 1 {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						} else {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno primaria
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						}
+
+						//no tiene anterior, ni siguiente
+					} else if posAnterior == -1 && posSiguiente == -1 {
+						tamDisco := m.Tamanio
+						tamMBR := int64(size)
+						starActual := misParticiones[i].Start
+						tamActual := misParticiones[i].Tamanio
+
+						//espacio entre MBR y actual
+						espacio := starActual - tamMBR
+						if espacio > 1 {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						} else {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno primaria
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						}
+
+						//como no tiene siguiente
+						//espacio entre el ultimo y el disco
+						espacio2 := (tamDisco - tamMBR) - (starActual + tamActual)
+						if espacio2 > 1 {
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td>"
+						}
+
+						//tiene anterior y siguiente
+					} else if posAnterior != -1 && posSiguiente != -1 {
+						starAnterior := misParticiones[posAnterior].Start
+						tamAnterior := misParticiones[posAnterior].Tamanio
+						starActual := misParticiones[i].Start
+
+						espacio := starActual - (starAnterior + tamAnterior)
+						if espacio > 1 {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						} else {
+							//si es primaria
+							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//concateno primaria
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//concateno la libre y la primaria
+								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	cadenaRep += "</tr>\n\n"
+
+	//EMPIEZA LOGICAS
+
+	cadenaRep += "<tr><td cellpadding='1'>\n\n"
+	cadenaRep += "<table bgcolor='orange' cellspacing='0'>\n\n"
+	cadenaRep += "<tr>\n"
+
+	posicionExtendida := -1
+	for i := 0; i < len(misParticiones); i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//si existe una extendida
+	if posicionExtendida != -1 {
+		hayLogicas := false
+		misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+		for i := 0; i < len(misParticionesLogicas); i++ {
+			if misParticionesLogicas[i].Tamanio != 0 {
+				hayLogicas = true
+				break
+			}
+		}
+
+		if hayLogicas == false {
+			cadenaRep += "<td bgcolor='green'>LIBRE</td>\n"
+		}
+	}
+
+	cadenaRep += "</tr>"
+	cadenaRep += "</table>\n"
+	cadenaRep += "</td></tr>\n\n"
+
+	cadenaRep += "</table>\n\n"
+	cadenaRep += ">];\n\n"
+	cadenaRep += "}"
+
+	crearDot("report_Disk", cadenaRep)
+	crearImg("report_Disk")
+
 }
 
 func crearDot(name string, cadena string) {
