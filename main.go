@@ -20,7 +20,7 @@ import (
 func main() {
 	leerEntrada()
 	//reporteMBR("/home/gudiel/Disco1.dsk")
-	reporteDisk("/home/gudiel/Disco1.dsk")
+	//reporteDisk("/home/gudiel/Disco1.dsk")
 	//pruebaMount()
 	//m := mbr{}
 	//fmt.Println(int(unsafe.Sizeof(m)))
@@ -379,6 +379,8 @@ func logica() {
 			mountComando(i)
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unmount") == 0 {
 			unmountComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mkfs") == 0 {
+			mkfsComando(i)
 		}
 	}
 }
@@ -3940,6 +3942,325 @@ func desmontarParticion(ids []string) {
 
 //-------------------------------FIN MOUNT-------------------------------//
 
+//-------------------------------------------------SISTEMA DE ARCHIVOS LWH-----------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+
+//--------------------------------------------------------INICIO MKFS--------------------------------------------------------//
+
+func mkfsComando(index int) {
+	id := ""
+	typee := ""
+	add := 0
+	unit := "k"
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "id") == 0 { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				id = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'id' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "type") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				typee = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'type' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "add") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
+				add = tam
+				if err != nil {
+					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'add' de 'MKFS' ]")
+				}
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'add' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unit") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				unit = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'unit' ]")
+			}
+		}
+	}
+
+	operacionMkfs(id, typee, add, unit)
+
+}
+
+func operacionMkfs(id string, typee string, add int, unit string) {
+
+	pathDisco := retornarPathDeParticionDadoID(id)
+	nameParticion := retornarNameDeParticionDadoID(id)
+	tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
+	starParticion := retornarStarParticion(pathDisco, nameParticion)
+
+	//tamanio estructuras
+	sb := SuperBoot{}
+	tamanioSuperBoot := int(unsafe.Sizeof(sb))
+	avd := ArbolVirtualDirectorio{}
+	tamanioArbolVirtualDirectorio := int(unsafe.Sizeof(avd))
+	dd := DetalleDirectorio{}
+	tamanioDetalleDirectorio := int(unsafe.Sizeof(dd))
+	inodo := Inodos{}
+	tamanioInodos := int(unsafe.Sizeof(inodo))
+	bloques := bloque{}
+	tamanioBloques := int(unsafe.Sizeof(bloques))
+	bitacora := LogBitacora{}
+	tamanioBitacora := int(unsafe.Sizeof(bitacora))
+
+	//numero de estructuras
+
+	op1 := 2 * tamanioSuperBoot
+	op2 := int(tamanioParticion) - op1
+
+	op3 := 5 * tamanioInodos
+	op4 := 20 * tamanioBloques
+	op6 := op3 + op4 + tamanioBitacora
+	op7 := 27 + tamanioArbolVirtualDirectorio + tamanioDetalleDirectorio + op6
+
+	numEstructuras := op2 / op7
+
+	//tamanios estructuras
+	bytesDosSuperBoot := 2 * tamanioSuperBoot
+	bytesBitmapArbolVirtual := numEstructuras
+	bytesArbolVirtual := tamanioArbolVirtualDirectorio * numEstructuras
+	bytesBitmapDetalleDirectorio := numEstructuras
+	bytesDetalleDirectorio := tamanioDetalleDirectorio * numEstructuras
+	bytesBitmapInodo := 5 * numEstructuras
+	bytesInodos := 5 * tamanioInodos * numEstructuras
+	bytesBitmapBloques := 20 * numEstructuras
+	bytesBloques := 20 * tamanioBloques * numEstructuras
+	bytesBitacora := tamanioBitacora * numEstructuras
+
+	total := bytesDosSuperBoot + bytesBitmapArbolVirtual + bytesArbolVirtual + bytesBitmapDetalleDirectorio + bytesDetalleDirectorio + bytesBitmapInodo + bytesInodos + bytesBitmapBloques + bytesBloques + bytesBitacora
+
+	fmt.Println(starParticion, "  ", tamanioParticion, "  ", total)
+
+	agregarEstructurasEnParcicion(pathDisco, nameParticion, int64(starParticion), int64(bytesDosSuperBoot), int64(bytesBitmapArbolVirtual), int64(bytesArbolVirtual), int64(bytesBitmapDetalleDirectorio), int64(bytesDetalleDirectorio), int64(bytesBitmapInodo), int64(bytesInodos), int64(bytesBitmapBloques), int64(bytesBloques), int64(bytesBitacora))
+}
+
+func retornarPathDeParticionDadoID(idPart string) string {
+
+	for k := range mapaMount { //recorre todas las path que hay en el mapa
+		for i := 0; i < len(mapaMount[k]); i++ { //recorre el array mount, del path actual
+			mountAcutal := mapaMount[k][i] //mount actual
+			if strings.Compare(strings.ToLower(mountAcutal.PartID), strings.ToLower(idPart)) == 0 {
+				pathDisk := mountAcutal.Path
+				return pathDisk
+			}
+		}
+	}
+
+	return "NAC"
+}
+
+func retornarNameDeParticionDadoID(idPart string) string {
+
+	for k := range mapaMount { //recorre todas las path que hay en el mapa
+		for i := 0; i < len(mapaMount[k]); i++ { //recorre el array mount, del path actual
+			mountAcutal := mapaMount[k][i] //mount actual
+			if strings.Compare(strings.ToLower(mountAcutal.PartID), strings.ToLower(idPart)) == 0 {
+				nameDisk := mountAcutal.Name
+				return nameDisk
+			}
+		}
+	}
+
+	return "NAC"
+}
+
+func retornarTamanioParticion(path string, name string) int64 {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//accedo a las particiones
+	misParticiones := m.Particiones
+
+	//recorro para verificar el nombre
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+
+		nombrePart := ""
+		for y := 0; y < 16; y++ {
+			if actual.Name[y] != 0 { //los que sean nulos no los concatena
+				nombrePart += string(actual.Name[y])
+			}
+		}
+
+		//si encuentra el nombre, retorna tamanio
+		if strings.Compare(strings.ToLower(string(nombrePart)), strings.ToLower(name)) == 0 {
+			return actual.Tamanio
+		}
+	}
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := -1
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//pueda que no tenga extendida
+	if posicionExtendida != -1 {
+		//accedo a las particiones logicas, quee estan dentro de la extendida
+		misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+		for i := 0; i < len(misParticionesLogicas); i++ {
+			actual := misParticionesLogicas[i]
+
+			nombrePart := ""
+			for y := 0; y < 16; y++ {
+				if actual.Name[y] != 0 { //los que sean nulos no los concatena
+					nombrePart += string(actual.Name[y])
+				}
+			}
+
+			//si encuentra el nombre, retorna tamanio
+			if strings.Compare(strings.ToLower(string(nombrePart)), strings.ToLower(name)) == 0 {
+				return actual.Tamanio
+			}
+
+		}
+	}
+
+	return -1
+}
+
+func retornarStarParticion(path string, name string) int64 {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//Declaramos variable de tipo mbr
+	m := mbr{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(m))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &m)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//accedo a las particiones
+	misParticiones := m.Particiones
+
+	//recorro para verificar el nombre
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+
+		nombrePart := ""
+		for y := 0; y < 16; y++ {
+			if actual.Name[y] != 0 { //los que sean nulos no los concatena
+				nombrePart += string(actual.Name[y])
+			}
+		}
+
+		//si encuentra el nombre, retorna tamanio
+		if strings.Compare(strings.ToLower(string(nombrePart)), strings.ToLower(name)) == 0 {
+			return actual.Start
+		}
+	}
+
+	//obtengo el indice donde se encuentra la particion extendida
+	posicionExtendida := -1
+	for i := 0; i < 4; i++ {
+		actual := misParticiones[i]
+		if strings.Compare(strings.ToLower(string(actual.TipoParticion)), "e") == 0 {
+			posicionExtendida = i
+			break
+		}
+	}
+
+	//pueda que no tenga extendida
+	if posicionExtendida != -1 {
+		//accedo a las particiones logicas, quee estan dentro de la extendida
+		misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
+
+		for i := 0; i < len(misParticionesLogicas); i++ {
+			actual := misParticionesLogicas[i]
+
+			nombrePart := ""
+			for y := 0; y < 16; y++ {
+				if actual.Name[y] != 0 { //los que sean nulos no los concatena
+					nombrePart += string(actual.Name[y])
+				}
+			}
+
+			//si encuentra el nombre, retorna tamanio
+			if strings.Compare(strings.ToLower(string(nombrePart)), strings.ToLower(name)) == 0 {
+				return actual.Start
+			}
+
+		}
+	}
+
+	return -1
+}
+
+func agregarEstructurasEnParcicion(path string, nameParticion string, starParticion int64, bytesDosSuperBoot int64, bytesBitmapArbolVirtual int64, bytesArbolVirtual int64, bytesBitmapDetalleDirectorio int64, bytesDetalleDirectorio int64, bytesBitmapInodo int64, bytesInodos int64, bytesBitmapBloques int64, bytesBloques int64, bytesBitacora int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	sb := SuperBoot{}
+	copy(sb.SbNombre[:], nameParticion)
+
+	t := time.Now()
+	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())
+
+	// Igualar cadenas a array de bytes (array de chars)
+	copy(sb.SbFechaCreacion[:], fecha)
+
+}
+
+//----------------------------------------------------------FIN MKFS--------------------------------------------------------//
+
 //-------------------------------OPERACIONES PARA MBR-------------------------------//
 
 //---------------------------------REPORTE MBR---------------------------------//
@@ -4076,6 +4397,7 @@ func reporteMBR(path string) {
 	crearImg("report_mbr")
 }
 
+//---------------------------------REPORTE DISK---------------------------------//
 func reporteDisk(path string) {
 	//Abrimos/creamos un archivo.
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
