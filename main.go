@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	//leerEntrada()
+	leerEntrada()
 	//reporteMBR("/home/gudiel/Disco1.dsk")
 	reporteDisk("/home/gudiel/Disco1.dsk")
 	//pruebaMount()
@@ -4152,21 +4152,49 @@ func reporteDisk(path string) {
 					if espacio > 1 {
 						//si es primaria
 						if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+							//elimino espacios nulos del nombre
+							nombrePart := ""
+							for y := 0; y < 16; y++ {
+								if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+									nombrePart += string(misParticiones[i].Name[y])
+								}
+							}
 							//concateno la libre y la primaria
-							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 						} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+							//elimino espacios nulos del nombre
+							nombrePart := ""
+							for y := 0; y < 16; y++ {
+								if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+									nombrePart += string(misParticiones[i].Name[y])
+								}
+							}
 							//concateno la libre y la primaria
-							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+							cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 						}
 					} else {
 						//si es primaria
 						if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+							//elimino espacios nulos del nombre
+							nombrePart := ""
+							for y := 0; y < 16; y++ {
+								if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+									nombrePart += string(misParticiones[i].Name[y])
+								}
+							}
 							//concateno primaria
-							cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+							cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 						} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+							//elimino espacios nulos del nombre
+							nombrePart := ""
+							for y := 0; y < 16; y++ {
+								if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+									nombrePart += string(misParticiones[i].Name[y])
+								}
+							}
 							//concateno la libre y la primaria
-							cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+							cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 						}
 					}
 
@@ -4196,21 +4224,49 @@ func reporteDisk(path string) {
 						if espacio > 1 {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						} else {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno primaria
-								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						}
 
@@ -4231,21 +4287,49 @@ func reporteDisk(path string) {
 						if espacio > 1 {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						} else {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno primaria
-								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						}
 
@@ -4293,21 +4377,49 @@ func reporteDisk(path string) {
 						if espacio > 1 {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						} else {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno primaria
-								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						}
 
@@ -4330,21 +4442,49 @@ func reporteDisk(path string) {
 						if espacio > 1 {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						} else {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno primaria
-								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						}
 
@@ -4360,21 +4500,49 @@ func reporteDisk(path string) {
 						if espacio > 1 {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						} else {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno primaria
-								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						}
 
@@ -4395,21 +4563,49 @@ func reporteDisk(path string) {
 						if espacio > 1 {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td rowspan='2' bgcolor='green'>LIBRE</td><td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						} else {
 							//si es primaria
 							if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "p") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno primaria
-								cadenaRep += "<td bgcolor='pink' rowspan='2'>PRIMARIA</td>"
+								cadenaRep += "<td bgcolor='pink' rowspan='2'>P: " + nombrePart + "</td>"
 							} else if strings.Compare(strings.ToLower(string(misParticiones[i].TipoParticion)), "e") == 0 {
+								//elimino espacios nulos del nombre
+								nombrePart := ""
+								for y := 0; y < 16; y++ {
+									if misParticiones[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePart += string(misParticiones[i].Name[y])
+									}
+								}
 								//concateno la libre y la primaria
-								cadenaRep += "<td bgcolor='cyan'>EXTENDIDA</td>"
+								cadenaRep += "<td bgcolor='cyan'>E: " + nombrePart + "</td>"
 							}
 						}
 					}
@@ -4437,6 +4633,8 @@ func reporteDisk(path string) {
 
 	//si existe una extendida
 	if posicionExtendida != -1 {
+
+		//si contiene logicas
 		hayLogicas := false
 		misParticionesLogicas := misParticiones[posicionExtendida].ParticionesLogicas
 		for i := 0; i < len(misParticionesLogicas); i++ {
@@ -4448,6 +4646,290 @@ func reporteDisk(path string) {
 
 		if hayLogicas == false {
 			cadenaRep += "<td bgcolor='green'>LIBRE</td>\n"
+		} else {
+			//recorro logicas
+			for i := 0; i < len(misParticionesLogicas); i++ {
+
+				if misParticionesLogicas[i].Tamanio != 0 {
+
+					//si es el primero
+					if i == 0 {
+						starExtend := misParticiones[posicionExtendida].Start
+						starActual := misParticionesLogicas[i].Start
+						espacio := starActual - starExtend
+						//si hay espacio libre
+						if espacio > 1 {
+							//elimino espacios nulos del nombre
+							nombrePartLog := ""
+							for y := 0; y < 16; y++ {
+								if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+									nombrePartLog += string(misParticionesLogicas[i].Name[y])
+								}
+							}
+							//concateno la libre y la logica
+							cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+
+						} else {
+							//elimino espacios nulos del nombre
+							nombrePartLog := ""
+							for y := 0; y < 16; y++ {
+								if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+									nombrePartLog += string(misParticionesLogicas[i].Name[y])
+								}
+							}
+							//concateno logica
+							cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+						}
+
+						//si es el ultimo
+					} else if i == len(misParticionesLogicas)-1 {
+						posAnterior := -1
+						for x := i - 1; x > -1; x-- { //empieza a buscar una antes
+							//si encuantra antes una particion, guardo posicion donde la encuentra
+							if misParticionesLogicas[x].Tamanio != 0 {
+								posAnterior = x
+								break
+							}
+						}
+
+						//si hay una particion antes
+						if posAnterior != -1 {
+							starExtend := misParticiones[posicionExtendida].Start
+							tamExtend := misParticiones[posicionExtendida].Tamanio
+							starAnterior := misParticionesLogicas[posAnterior].Start
+							tamAnterior := misParticionesLogicas[posAnterior].Tamanio
+							starActual := misParticionesLogicas[i].Start
+							tamActual := misParticionesLogicas[i].Tamanio
+
+							//espacio entre el anterior y el ultimo
+							espacio := starActual - (starAnterior + tamAnterior)
+							if espacio > 1 {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno la libre y la logica
+								cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+							} else {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno logica
+								cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+							}
+
+							//espacio entre el ultimo y el disco
+							espacio2 := (starExtend + tamExtend) - (starActual + tamActual)
+							if espacio2 > 1 {
+								cadenaRep += "<td bgcolor='green'>LIBRE</td>"
+							}
+
+							//si no hay una particion antes
+						} else if posAnterior == -1 {
+							starExtend := misParticiones[posicionExtendida].Start
+							tamExtend := misParticiones[posicionExtendida].Tamanio
+							starActual := misParticionesLogicas[i].Start
+							tamActual := misParticionesLogicas[i].Tamanio
+
+							espacio := starActual - starExtend
+							if espacio > 1 {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno la libre y la logica
+								cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+							} else {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno logica
+								cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+							}
+
+							//espacio entre el ultimo y el disco
+							espacio2 := (starExtend + tamExtend) - (starActual + tamActual)
+							if espacio2 > 1 {
+								cadenaRep += "<td bgcolor='green'>LIBRE</td>"
+							}
+
+						}
+
+						//ni primero ni ultimo
+					} else {
+						posAnterior := -1
+						for x := i - 1; x > -1; x-- { //empieza a buscar una antes
+							//si encuantra antes una particion, guardo posicion donde la encuentra
+							if misParticionesLogicas[x].Tamanio != 0 {
+								posAnterior = x
+								break
+							}
+						}
+
+						posSiguiente := -1
+						for x := i + 1; x < len(misParticionesLogicas); x++ { //empieza a buscar una despues, de las dos donde se encontro espacio
+							//si encuantra un espacio
+							if misParticionesLogicas[x].Tamanio != 0 {
+								posSiguiente = x
+								break
+							}
+						}
+
+						//tiene anterior pero no siguiente
+						if posAnterior != -1 && posSiguiente == -1 {
+							starExtend := misParticiones[posicionExtendida].Start
+							tamExtend := misParticiones[posicionExtendida].Tamanio
+							starAnterior := misParticionesLogicas[posAnterior].Start
+							tamAnterior := misParticionesLogicas[posAnterior].Tamanio
+							starActual := misParticionesLogicas[i].Start
+							tamActual := misParticionesLogicas[i].Tamanio
+
+							//espacio entre ambas
+							espacio := starActual - (starAnterior + tamAnterior)
+							if espacio > 1 {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno la libre y la logica
+								cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+							} else {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno logica
+								cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+							}
+
+							//como no tiene siguiente
+							//espacio entre el ultimo y la extendida
+							espacio2 := (starExtend + tamExtend) - (starActual + tamActual)
+
+							if espacio2 > 1 {
+								cadenaRep += "<td bgcolor='green'>LIBRE</td>"
+							}
+
+							//no tiene anterior, pero si siguiente
+						} else if posAnterior == -1 && posSiguiente != -1 {
+
+							starExtend := misParticiones[posicionExtendida].Start
+							starActual := misParticionesLogicas[i].Start
+
+							//espacio entre MBR y actual
+							espacio := starActual - starExtend
+							if espacio > 1 {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno la libre y la logica
+								cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+							} else {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno logica
+								cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+							}
+
+							//no tiene anterior, ni siguiente
+						} else if posAnterior == -1 && posSiguiente == -1 {
+							starExtend := misParticiones[posicionExtendida].Start
+							tamExtend := misParticiones[posicionExtendida].Tamanio
+							starActual := misParticionesLogicas[i].Start
+							tamActual := misParticionesLogicas[i].Tamanio
+
+							//espacio entre MBR y actual
+							espacio := starActual - starExtend
+							if espacio > 1 {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno la libre y la logica
+								cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+							} else {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno logica
+								cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+							}
+
+							//como no tiene siguiente
+							//espacio entre el ultimo y la extendida
+							espacio2 := (starExtend + tamExtend) - (starActual + tamActual)
+							if espacio2 > 1 {
+								cadenaRep += "<td bgcolor='green'>LIBRE</td>"
+							}
+
+							//tiene anterior y siguiente
+						} else if posAnterior != -1 && posSiguiente != -1 {
+							starAnterior := misParticionesLogicas[posAnterior].Start
+							tamAnterior := misParticionesLogicas[posAnterior].Tamanio
+							starActual := misParticionesLogicas[i].Start
+
+							espacio := starActual - (starAnterior + tamAnterior)
+							if espacio > 1 {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno la libre y la logica
+								cadenaRep += "<td bgcolor='green'>LIBRE</td><td>L: " + nombrePartLog + "</td>"
+							} else {
+								//elimino espacios nulos del nombre
+								nombrePartLog := ""
+								for y := 0; y < 16; y++ {
+									if misParticionesLogicas[i].Name[y] != 0 { //los que sean nulos no los concatena
+										nombrePartLog += string(misParticionesLogicas[i].Name[y])
+									}
+								}
+								//concateno logica
+								cadenaRep += "<td>L: " + nombrePartLog + "</td>"
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
