@@ -26,6 +26,16 @@ func main() {
 	//fmt.Println(int(unsafe.Sizeof(m)))
 	//fmt.Println(int(binary.Size(m)))
 
+	/*archivoTXTinicial := "1,G,root \n1,U,root,201404278\n"
+	fmt.Println(len(archivoTXTinicial))
+
+	fmt.Println(archivoTXTinicial[0:24])
+	fmt.Println(archivoTXTinicial[25 : len(archivoTXTinicial)-1])
+	*/
+
+	//crearDirectorioSiNoExiste("/home/gudiel/PRUEBASISI")
+	//crearDirectorioSiNoExiste("/home/gudiel/PRUEBASISI/yes")
+
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
@@ -104,7 +114,7 @@ type SuperBoot struct {
 	SbPrimerBitLibreDetalleDirectorio            int64
 	SbPrimerBitLibreInodos                       int64
 	SbPrimerBitLibreBloques                      int64
-	SbMagigNum                                   int64
+	SbMagigNum                                   [9]byte
 }
 
 // ArbolVirtualDirectorio ,
@@ -112,9 +122,11 @@ type ArbolVirtualDirectorio struct {
 	AvdNombreDirectorio    [16]byte
 	AvdFechaCreacion       [20]byte
 	AvdArraySubDirectorios [6]int64
-	AvdApDetalleDirectorio [5]int64
+	AvdApDetalleDirectorio int64
 	AvdApIndirecto         int64
-	AvdPropietario         [16]byte
+	AvdIDPropietario       int64
+	AvdGrupoAlQuePertenece int64
+	AvdPermisos            int64
 }
 
 // DetalleDirectorio ,
@@ -133,12 +145,14 @@ type DetalleDirectorioArr struct {
 
 // Inodos ,
 type Inodos struct {
-	iNumeroInodo            int64
-	iTamanioArchivoTXT      int64
-	iNumeroBloquesAsignados int64
-	iApArrayBloques         [4]int64
-	iApIndirecto            int64
-	iPropietario            [16]byte
+	INumeroInodo            int64
+	ITamanioArchivoTXT      int64
+	INumeroBloquesAsignados int64
+	IApArrayBloques         [4]int64
+	IApIndirecto            int64
+	IIDPropietario          int64
+	IGrupoAlQuePertenece    int64
+	IPermisos               int64
 }
 
 type bloque struct {
@@ -381,6 +395,8 @@ func logica() {
 			unmountComando(i)
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mkfs") == 0 {
 			mkfsComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "rep") == 0 {
+			repComando(i)
 		}
 	}
 }
@@ -4024,7 +4040,8 @@ func operacionMkfs(id string, typee string, add int, unit string) {
 	numEstructuras := op2 / op7
 
 	//tamanios estructuras
-	bytesDosSuperBoot := 2 * tamanioSuperBoot
+	//bytesDosSuperBoot := 2 * tamanioSuperBoot
+	bytesSuperBoot := tamanioSuperBoot
 	bytesBitmapArbolVirtual := numEstructuras
 	bytesArbolVirtual := tamanioArbolVirtualDirectorio * numEstructuras
 	bytesBitmapDetalleDirectorio := numEstructuras
@@ -4035,11 +4052,11 @@ func operacionMkfs(id string, typee string, add int, unit string) {
 	bytesBloques := 20 * tamanioBloques * numEstructuras
 	bytesBitacora := tamanioBitacora * numEstructuras
 
-	total := bytesDosSuperBoot + bytesBitmapArbolVirtual + bytesArbolVirtual + bytesBitmapDetalleDirectorio + bytesDetalleDirectorio + bytesBitmapInodo + bytesInodos + bytesBitmapBloques + bytesBloques + bytesBitacora
+	//total := bytesDosSuperBoot + bytesBitmapArbolVirtual + bytesArbolVirtual + bytesBitmapDetalleDirectorio + bytesDetalleDirectorio + bytesBitmapInodo + bytesInodos + bytesBitmapBloques + bytesBloques + bytesBitacora
 
-	fmt.Println(starParticion, "  ", tamanioParticion, "  ", total)
+	//fmt.Println(starParticion, "  ", tamanioParticion, "  ", total)
 
-	agregarEstructurasEnParcicion(pathDisco, nameParticion, int64(starParticion), int64(bytesDosSuperBoot), int64(bytesBitmapArbolVirtual), int64(bytesArbolVirtual), int64(bytesBitmapDetalleDirectorio), int64(bytesDetalleDirectorio), int64(bytesBitmapInodo), int64(bytesInodos), int64(bytesBitmapBloques), int64(bytesBloques), int64(bytesBitacora))
+	agregarEstructurasEnParcicion(pathDisco, nameParticion, int64(starParticion), int64(bytesSuperBoot), int64(bytesBitmapArbolVirtual), int64(bytesArbolVirtual), int64(bytesBitmapDetalleDirectorio), int64(bytesDetalleDirectorio), int64(bytesBitmapInodo), int64(bytesInodos), int64(bytesBitmapBloques), int64(bytesBloques), int64(bytesBitacora))
 }
 
 func retornarPathDeParticionDadoID(idPart string) string {
@@ -4238,7 +4255,7 @@ func retornarStarParticion(path string, name string) int64 {
 	return -1
 }
 
-func agregarEstructurasEnParcicion(path string, nameParticion string, starParticion int64, bytesDosSuperBoot int64, bytesBitmapArbolVirtual int64, bytesArbolVirtual int64, bytesBitmapDetalleDirectorio int64, bytesDetalleDirectorio int64, bytesBitmapInodo int64, bytesInodos int64, bytesBitmapBloques int64, bytesBloques int64, bytesBitacora int64) {
+func agregarEstructurasEnParcicion(path string, nameParticion string, starParticion int64, bytesSuperBoot int64, bytesBitmapArbolVirtual int64, bytesArbolVirtual int64, bytesBitmapDetalleDirectorio int64, bytesDetalleDirectorio int64, bytesBitmapInodo int64, bytesInodos int64, bytesBitmapBloques int64, bytesBloques int64, bytesBitacora int64) {
 	//Abrimos/creamos un archivo.
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
 	defer file.Close()
@@ -4246,8 +4263,31 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 		log.Fatal(err)
 	}
 
+	//Inicio de las estrucutras
+	inicioSuperBoot := starParticion + 1
+	inicioBitMapAVD := inicioSuperBoot + bytesSuperBoot + 1
+	inicioAVD := inicioBitMapAVD + bytesBitmapArbolVirtual + 1
+	inicioBitMapDD := inicioAVD + bytesArbolVirtual + 1
+	inicioDD := inicioBitMapDD + bytesBitmapDetalleDirectorio + 1
+	inicioBitMapInodo := inicioDD + bytesDetalleDirectorio + 1
+	inicioInodo := inicioBitMapInodo + bytesInodos + 1
+	inicioBitMapBloques := inicioInodo + bytesInodos + 1
+	inicioBloques := inicioBitMapBloques + bytesBitmapBloques + 1
+	inicioLog := inicioBloques + bytesBloques + 1
+
+	archivoTXTinicial := "1,G,roor \n1,U,root,201404278\n"
+
+	//PARA SUPER BOOT
 	sb := SuperBoot{}
-	copy(sb.SbNombre[:], nameParticion)
+	copy(sb.SbNombre[:], nameParticion) //nombre
+	sb.SbCantidadEstructurasArbolDirectorio = 1
+	sb.SbCantidadEstructurasArbolDirectorio = 1
+	sb.SbCantidadInodos = 1
+	sb.SbCantidadBloques = 2
+	sb.SbCantidadEstructurasArbolDirectorioLibres = bytesBitmapArbolVirtual - 1
+	sb.SbCantidadEstructurasDetalleDirectorioLibres = bytesBitmapDetalleDirectorio - 1
+	sb.SbCantidadInodosLibres = bytesBitmapInodo - 1
+	sb.SbCantidadBloquesLibres = bytesBitmapBloques - 1
 
 	t := time.Now()
 	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
@@ -4257,15 +4297,282 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 	// Igualar cadenas a array de bytes (array de chars)
 	copy(sb.SbFechaCreacion[:], fecha)
 
+	copy(sb.SbFechaUltimoMontaje[:], fecha)
+
+	sb.SbContadorMontajes = 1
+	sb.SbApInicioBitmapArbolDirectorio = inicioBitMapAVD
+	sb.SbApInicioArbolDirectorio = inicioAVD
+	sb.SbApInicioBitmapDetalleDirectorio = inicioBitMapDD
+	sb.SbApInicioDetalleDirectorio = inicioDD
+	sb.SbApInicioBitmapInodos = inicioBitMapInodo
+	sb.SbApInicioInodos = inicioInodo
+	sb.SbApInicioBitmapBloques = inicioBitMapBloques
+	sb.SbApInicioBloques = inicioBloques
+	sb.SbApInicioBitacora = inicioLog
+
+	tamStructAVD := ArbolVirtualDirectorio{}
+	sb.SbTamanioEstructuraArbolDirectorio = int64(unsafe.Sizeof(tamStructAVD))
+
+	tamStructDD := DetalleDirectorio{}
+	sb.SbTamanioEstructuraDetalleDirectorio = int64(unsafe.Sizeof(tamStructDD))
+
+	tamStructInodo := Inodos{}
+	sb.SbTamanioEstructuraInodo = int64(unsafe.Sizeof(tamStructInodo))
+
+	tamStructBloque := bloque{}
+	sb.SbTamanioEstructuraBloques = int64(unsafe.Sizeof(tamStructBloque))
+
+	sb.SbPrimerBitLibreArbolDirectorio = 2
+	sb.SbPrimerBitLibreDetalleDirectorio = 2
+	sb.SbPrimerBitLibreInodos = 2
+	sb.SbPrimerBitLibreBloques = 3
+
+	copy(sb.SbMagigNum[:], "201404278")
+
+	//PARA BITMAP ARBOL DIRECTORIO
+	arrBitmapAVD := make([]int8, bytesBitmapArbolVirtual)
+	arrBitmapAVD[0] = 1
+
+	//PARA AVD
+	avd := ArbolVirtualDirectorio{}
+
+	tavd := time.Now()
+	fechaavd := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		tavd.Year(), tavd.Month(), tavd.Day(),
+		tavd.Hour(), tavd.Minute(), tavd.Second())
+
+	copy(avd.AvdFechaCreacion[:], fechaavd)
+	copy(avd.AvdNombreDirectorio[:], "/")
+	avd.AvdApDetalleDirectorio = 1
+	avd.AvdIDPropietario = 1
+
+	//PARA BITMAP DETALLE DIRECTORIO
+	arrBitmapDD := make([]int8, bytesBitmapDetalleDirectorio)
+	arrBitmapDD[0] = 1
+
+	//PARA DD
+	dd := DetalleDirectorio{}
+	estructuraDentroDD := dd.DdArrayArchivosTXT
+	ddarr := estructuraDentroDD[0]
+
+	copy(ddarr.DdNombreArchivoTXT[:], "users.txt")
+	ddarr.DdApInodo = 1
+
+	tdd := time.Now()
+	fechadd := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		tdd.Year(), tdd.Month(), tdd.Day(),
+		tdd.Hour(), tdd.Minute(), tdd.Second())
+
+	copy(ddarr.DdFechaCreacion[:], fechadd)
+
+	copy(ddarr.DdFechaModificacion[:], fechadd)
+
+	dd.DdArrayArchivosTXT[0] = ddarr //para que guarde cambios
+
+	//PARA BITMAP INODOS
+	arrBitmapInodo := make([]int8, bytesBitmapInodo)
+	arrBitmapInodo[0] = 1
+
+	//PARA INODO
+	inodo := Inodos{}
+	inodo.ITamanioArchivoTXT = int64(len(archivoTXTinicial))
+	inodo.INumeroInodo = 1
+	inodo.INumeroBloquesAsignados = 2
+	inodo.IIDPropietario = 1
+
+	apBloquesArr := inodo.IApArrayBloques
+	apBloquesArr[0] = 1
+	apBloquesArr[1] = 2
+
+	inodo.IApArrayBloques = apBloquesArr //para que guarde cambios
+
+	//PARA BITMAP BLOQUES
+	arrBitmapBLoques := make([]int8, bytesBitmapBloques)
+	arrBitmapBLoques[0] = 1
+	arrBitmapBLoques[1] = 1
+
+	//PARA BLOQUES
+	bloque1 := bloque{}
+	copy(bloque1.bInformacionArchivo[:], archivoTXTinicial[0:24])
+
+	bloque2 := bloque{}
+	copy(bloque2.bInformacionArchivo[:], archivoTXTinicial[25:len(archivoTXTinicial)])
+
+	//GUARDANDO BLOQUE SUPER BOOT
+	file.Seek(inicioSuperBoot, 0)
+	s1 := &sb
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	//GUARDANDO BITMAP AVD
+	file.Seek(inicioBitMapAVD, 0)
+	s2 := &arrBitmapAVD
+	//Escribimos
+	var binario2 bytes.Buffer
+	binary.Write(&binario2, binary.BigEndian, s2)
+	escribirBytes(file, binario2.Bytes())
+
+	//GUARDANDO AVD
+	file.Seek(inicioAVD, 0)
+	s3 := &avd
+	//Escribimos
+	var binario3 bytes.Buffer
+	binary.Write(&binario3, binary.BigEndian, s3)
+	escribirBytes(file, binario3.Bytes())
+
+	//GUARDANDO BITMAP DD
+	file.Seek(inicioBitMapDD, 0)
+	s4 := &arrBitmapDD
+	//Escribimos
+	var binario4 bytes.Buffer
+	binary.Write(&binario4, binary.BigEndian, s4)
+	escribirBytes(file, binario4.Bytes())
+
+	//GUARDANDO DD
+	file.Seek(inicioDD, 0)
+	s5 := &dd
+	//Escribimos
+	var binario5 bytes.Buffer
+	binary.Write(&binario5, binary.BigEndian, s5)
+	escribirBytes(file, binario5.Bytes())
+
+	//GUARDANDO BITMAP INODO
+	file.Seek(inicioBitMapInodo, 0)
+	s6 := &arrBitmapInodo
+	//Escribimos
+	var binario6 bytes.Buffer
+	binary.Write(&binario6, binary.BigEndian, s6)
+	escribirBytes(file, binario6.Bytes())
+
+	//GUARDANDO INODO
+	file.Seek(inicioInodo, 0)
+	s7 := &inodo
+	//Escribimos
+	var binario7 bytes.Buffer
+	binary.Write(&binario7, binary.BigEndian, s7)
+	escribirBytes(file, binario7.Bytes())
+
+	//GUARDANDO BITMAP BLOQUE
+	file.Seek(inicioBitMapBloques, 0)
+	s8 := &arrBitmapBLoques
+	//Escribimos
+	var binario8 bytes.Buffer
+	binary.Write(&binario8, binary.BigEndian, s8)
+	escribirBytes(file, binario8.Bytes())
+
+	//GUARDANDO BLOQUE1
+	file.Seek(inicioBloques, 0)
+	s9 := &bloque1
+	//Escribimos
+	var binario9 bytes.Buffer
+	binary.Write(&binario9, binary.BigEndian, s9)
+	escribirBytes(file, binario9.Bytes())
+
+	//GUARDANDO BLOQUE2
+	tamBloque1 := int(unsafe.Sizeof(bloque1))
+	inicioBloque2 := inicioBloques + int64(tamBloque1) + 1
+	file.Seek(inicioBloque2, 0)
+	s10 := &bloque2
+	//Escribimos
+	var binario10 bytes.Buffer
+	binary.Write(&binario10, binary.BigEndian, s10)
+	escribirBytes(file, binario10.Bytes())
+
+	//GUARDANDO BITACORA
+	file.Seek(inicioLog, 0)
+	s11 := &sb
+	//Escribimos
+	var binario11 bytes.Buffer
+	binary.Write(&binario11, binary.BigEndian, s11)
+	escribirBytes(file, binario11.Bytes())
+
+	fmt.Println("FORMATEO CON SISTEMA DE ARCHIVOS LWH EN : ", nameParticion)
 }
 
-//----------------------------------------------------------FIN MKFS--------------------------------------------------------//
+//--------------------------------------------------------------------FIN MKFS--------------------------------------------------------//
+
+//--------------------------------------------------------INICIO REP--------------------------------------------------------//
+
+func repComando(index int) {
+	name := ""
+	path := ""
+	id := ""
+	ruta := ""
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				name = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'REP' -> 'name' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				path = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'REP' -> 'path' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "id") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				id = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'REP' -> 'id' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "ruta") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				ruta = listaComandos[i+2]
+			} else {
+				fmt.Print("\n[ ERROR: comando 'REP' -> 'ruta' ]")
+			}
+		}
+	}
+
+	operacionRep(name, path, id, ruta)
+
+}
+
+func operacionRep(name string, path string, id string, ruta string) {
+
+	delimitador := "/"
+	separador := "/"
+	rutaCreando := ""
+
+	nombresComoArreglo := strings.Split(path, delimitador)
+
+	//la ultima posicion sera el nombre del archivo, entonces creo carpeta hasta la penultima posicion del array
+	for i := 0; i < len(nombresComoArreglo)-1; i++ {
+		if strings.Compare(nombresComoArreglo[i], "") != 0 {
+			rutaCreando += separador + nombresComoArreglo[i]
+			crearDirectorioSiNoExiste(rutaCreando)
+			//fmt.Println(rutaCreando)
+		}
+	}
+
+	pathDisco := retornarPathDeParticionDadoID(id)
+
+	//si existe particion
+	if strings.Compare(pathDisco, "NAC") != 0 {
+		if strings.Compare(strings.ToLower(name), "mbr") == 0 {
+			reporteMBR(pathDisco, path)
+			fmt.Println(pathDisco, " ", path)
+		} else if strings.Compare(strings.ToLower(name), "disk") == 0 {
+			reporteDisk(pathDisco, path)
+		}
+	} else {
+		fmt.Print("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
+	}
+}
+
+//--------------------------------------------------------FIN REP--------------------------------------------------------//
 
 //-------------------------------OPERACIONES PARA MBR-------------------------------//
 
 //---------------------------------REPORTE MBR---------------------------------//
 
-func reporteMBR(path string) {
+func reporteMBR(path string, pathGuardar string) {
 	//Abrimos/creamos un archivo.
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
 	defer file.Close()
@@ -4393,12 +4700,14 @@ func reporteMBR(path string) {
 	cadenaRep += ">];\n"
 	cadenaRep += "}"
 
-	crearDot("report_mbr", cadenaRep)
-	crearImg("report_mbr")
+	crearDot(pathGuardar, cadenaRep)
+	crearImg(pathGuardar)
 }
 
+//-------------------------------FIN REPORTE MBR-------------------------------//
+
 //---------------------------------REPORTE DISK---------------------------------//
-func reporteDisk(path string) {
+func reporteDisk(path string, pathGuardar string) {
 	//Abrimos/creamos un archivo.
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
 	defer file.Close()
@@ -5263,10 +5572,12 @@ func reporteDisk(path string) {
 	cadenaRep += ">];\n\n"
 	cadenaRep += "}"
 
-	crearDot("report_Disk", cadenaRep)
-	crearImg("report_Disk")
+	crearDot(pathGuardar, cadenaRep)
+	crearImg(pathGuardar)
 
 }
+
+//-------------------------------FIN REPORTE DISK-------------------------------//
 
 func crearDot(name string, cadena string) {
 	f := createFile(name + ".dot")
@@ -5313,4 +5624,12 @@ func crearImg(name string) {
 	}
 }
 
-//-------------------------------FIN REPORTE MBR-------------------------------//
+func crearDirectorioSiNoExiste(directorio string) {
+	if _, err := os.Stat(directorio); os.IsNotExist(err) {
+		err = os.Mkdir(directorio, 0755)
+		if err != nil {
+			// Aquí puedes manejar mejor el error, es un ejemplo
+			panic(err)
+		}
+	}
+}
