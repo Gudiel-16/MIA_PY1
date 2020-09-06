@@ -36,6 +36,12 @@ func main() {
 	//crearDirectorioSiNoExiste("/home/gudiel/PRUEBASISI")
 	//crearDirectorioSiNoExiste("/home/gudiel/PRUEBASISI/yes")
 
+	/*var aja [1000]byte
+
+	arrBitmapInodo := make([]uint8, 2000)
+	println(int(binary.Size(arrBitmapInodo)))
+	println(int(unsafe.Sizeof(aja)))*/
+
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
@@ -4264,7 +4270,7 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 	}
 
 	//Inicio de las estrucutras
-	inicioSuperBoot := starParticion + 1
+	inicioSuperBoot := starParticion // + 1
 	inicioBitMapAVD := inicioSuperBoot + bytesSuperBoot + 1
 	inicioAVD := inicioBitMapAVD + bytesBitmapArbolVirtual + 1
 	inicioBitMapDD := inicioAVD + bytesArbolVirtual + 1
@@ -4281,7 +4287,7 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 	sb := SuperBoot{}
 	copy(sb.SbNombre[:], nameParticion) //nombre
 	sb.SbCantidadEstructurasArbolDirectorio = 1
-	sb.SbCantidadEstructurasArbolDirectorio = 1
+	sb.SbCantidadEstructurasDetalleDirectorio = 1
 	sb.SbCantidadInodos = 1
 	sb.SbCantidadBloques = 2
 	sb.SbCantidadEstructurasArbolDirectorioLibres = bytesBitmapArbolVirtual - 1
@@ -4331,6 +4337,9 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 
 	//PARA BITMAP ARBOL DIRECTORIO
 	arrBitmapAVD := make([]int8, bytesBitmapArbolVirtual)
+	for i := 0; i < len(arrBitmapAVD); i++ {
+		arrBitmapAVD[i] = 0
+	}
 	arrBitmapAVD[0] = 1
 
 	//PARA AVD
@@ -4348,6 +4357,9 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 
 	//PARA BITMAP DETALLE DIRECTORIO
 	arrBitmapDD := make([]int8, bytesBitmapDetalleDirectorio)
+	for i := 0; i < len(arrBitmapDD); i++ {
+		arrBitmapDD[i] = 0
+	}
 	arrBitmapDD[0] = 1
 
 	//PARA DD
@@ -4371,6 +4383,9 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 
 	//PARA BITMAP INODOS
 	arrBitmapInodo := make([]int8, bytesBitmapInodo)
+	for i := 0; i < len(arrBitmapInodo); i++ {
+		arrBitmapInodo[i] = 0
+	}
 	arrBitmapInodo[0] = 1
 
 	//PARA INODO
@@ -4388,6 +4403,9 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 
 	//PARA BITMAP BLOQUES
 	arrBitmapBLoques := make([]int8, bytesBitmapBloques)
+	for i := 0; i < len(arrBitmapBLoques); i++ {
+		arrBitmapBLoques[i] = 0
+	}
 	arrBitmapBLoques[0] = 1
 	arrBitmapBLoques[1] = 1
 
@@ -4511,7 +4529,13 @@ func repComando(index int) {
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
-				path = listaComandos[i+2]
+				rt := listaComandos[i+2]        //ruta
+				if strings.Contains(rt, "\"") { //si la ruta que viene contiene comillas
+					rt2 := rt[1 : len(rt)-1] //le quitamos comillas a la ruta
+					path = rt2               //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					path = rt
+				}
 			} else {
 				fmt.Print("\n[ ERROR: comando 'REP' -> 'path' ]")
 			}
@@ -4523,7 +4547,13 @@ func repComando(index int) {
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "ruta") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
-				ruta = listaComandos[i+2]
+				rt := listaComandos[i+2]        //ruta
+				if strings.Contains(rt, "\"") { //si la ruta que viene contiene comillas
+					rt2 := rt[1 : len(rt)-1] //le quitamos comillas a la ruta
+					ruta = rt2               //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					ruta = rt
+				}
 			} else {
 				fmt.Print("\n[ ERROR: comando 'REP' -> 'ruta' ]")
 			}
@@ -4552,6 +4582,8 @@ func operacionRep(name string, path string, id string, ruta string) {
 	}
 
 	pathDisco := retornarPathDeParticionDadoID(id)
+	namePart := retornarNameDeParticionDadoID(id)
+	starPart := retornarStarParticion(pathDisco, namePart)
 
 	//si existe particion
 	if strings.Compare(pathDisco, "NAC") != 0 {
@@ -4560,6 +4592,16 @@ func operacionRep(name string, path string, id string, ruta string) {
 			fmt.Println(pathDisco, " ", path)
 		} else if strings.Compare(strings.ToLower(name), "disk") == 0 {
 			reporteDisk(pathDisco, path)
+		} else if strings.Compare(strings.ToLower(name), "sb") == 0 {
+			reporteSB(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "bm_arbdir") == 0 {
+			reporteBitmapAVD(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "bm_detdir") == 0 {
+			reporteBitmapDD(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "bm_inode") == 0 {
+			reporteBitmapInodo(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "bm_block") == 0 {
+			reporteBitmapBloques(pathDisco, starPart, path)
 		}
 	} else {
 		fmt.Print("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
@@ -5578,6 +5620,402 @@ func reporteDisk(path string, pathGuardar string) {
 }
 
 //-------------------------------FIN REPORTE DISK-------------------------------//
+
+//---------------------------------REPORTE SB---------------------------------//
+
+func reporteSB(path string, starPart int64, pathGuardar string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	cadenaRep := "digraph { \n\n"
+	cadenaRep += "tbl [ \n\n"
+	cadenaRep += "shape=plaintext \n"
+	cadenaRep += "label=< \n\n"
+	cadenaRep += "<table color='orange' cellspacing='0'>\n"
+
+	//cabecera de tabla
+	cadenaRep += "<tr><td bgcolor='yellow'>NOMBRE</td><td bgcolor='yellow'>VALOR</td></tr>\n"
+
+	//nombre
+	nombrePart := ""
+	for x := 0; x < 16; x++ {
+		if miSB.SbNombre[x] != 0 { //los que sean nulos no los concatena
+			nombrePart += string(miSB.SbNombre[x])
+		}
+	}
+
+	cadenaRep += "<tr><td>sb_Nombre</td><td>" + nombrePart + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_arbol_virtual_cantidad</td><td>" + strconv.Itoa(int(miSB.SbCantidadEstructurasArbolDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_detalle_directorio_cantidad</td><td>" + strconv.Itoa(int(miSB.SbCantidadEstructurasDetalleDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_inodos_cantidad</td><td>" + strconv.Itoa(int(miSB.SbCantidadInodos)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_bloques_cantidad</td><td>" + strconv.Itoa(int(miSB.SbCantidadBloques)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_arbol_virtual_cantidad_libres</td><td>" + strconv.Itoa(int(miSB.SbCantidadEstructurasArbolDirectorioLibres)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_detalle_directorio_cantidad_libres</td><td>" + strconv.Itoa(int(miSB.SbCantidadEstructurasDetalleDirectorioLibres)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_inodos_cantidad_libres</td><td>" + strconv.Itoa(int(miSB.SbCantidadInodosLibres)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_bloques_cantidad_libres</td><td>" + strconv.Itoa(int(miSB.SbCantidadBloquesLibres)) + "</td></tr>\n"
+
+	fechaCreacion := ""
+	for x := 0; x < 20; x++ {
+		if miSB.SbFechaCreacion[x] != 0 { //los que sean nulos no los concatena
+			fechaCreacion += string(miSB.SbFechaCreacion[x])
+		}
+	}
+
+	cadenaRep += "<tr><td>sb_fecha_creacion</td><td>" + fechaCreacion + "</td></tr>\n"
+
+	fechaUltimoMontaje := ""
+	for x := 0; x < 20; x++ {
+		if miSB.SbFechaUltimoMontaje[x] != 0 { //los que sean nulos no los concatena
+			fechaUltimoMontaje += string(miSB.SbFechaUltimoMontaje[x])
+		}
+	}
+
+	cadenaRep += "<tr><td>sb_fecha_creacion</td><td>" + fechaUltimoMontaje + "</td></tr>\n"
+
+	cadenaRep += "<tr><td>sb_montajes_cantidad</td><td>" + strconv.Itoa(int(miSB.SbContadorMontajes)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_bitmap_arbol_virtual</td><td>" + strconv.Itoa(int(miSB.SbApInicioBitmapArbolDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_arbol_virtual</td><td>" + strconv.Itoa(int(miSB.SbApInicioArbolDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_bitmap_detalle_directorio</td><td>" + strconv.Itoa(int(miSB.SbApInicioBitmapDetalleDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_detalle_directorio</td><td>" + strconv.Itoa(int(miSB.SbApInicioDetalleDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_bitmap_inodo</td><td>" + strconv.Itoa(int(miSB.SbApInicioBitmapInodos)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_inodo</td><td>" + strconv.Itoa(int(miSB.SbApInicioInodos)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_bitmap_bloques</td><td>" + strconv.Itoa(int(miSB.SbApInicioBitmapBloques)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_bloques</td><td>" + strconv.Itoa(int(miSB.SbApInicioBloques)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_ap_log</td><td>" + strconv.Itoa(int(miSB.SbApInicioBitacora)) + "</td></tr>\n"
+
+	cadenaRep += "<tr><td>sb_tam_struct_arbol_virtual</td><td>" + strconv.Itoa(int(miSB.SbTamanioEstructuraArbolDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_tam_struct_detalle_directorio</td><td>" + strconv.Itoa(int(miSB.SbTamanioEstructuraDetalleDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_tam_struct_inodo</td><td>" + strconv.Itoa(int(miSB.SbTamanioEstructuraInodo)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_tam_struct_bloque</td><td>" + strconv.Itoa(int(miSB.SbTamanioEstructuraBloques)) + "</td></tr>\n"
+
+	cadenaRep += "<tr><td>sb_primer_bit_libre_arbol_virtual</td><td>" + strconv.Itoa(int(miSB.SbPrimerBitLibreArbolDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_primer_bit_libre_detalle_directorio</td><td>" + strconv.Itoa(int(miSB.SbPrimerBitLibreDetalleDirectorio)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_primer_bit_libre_inodos</td><td>" + strconv.Itoa(int(miSB.SbPrimerBitLibreInodos)) + "</td></tr>\n"
+	cadenaRep += "<tr><td>sb_primer_bit_libre_bloques</td><td>" + strconv.Itoa(int(miSB.SbPrimerBitLibreBloques)) + "</td></tr>\n"
+
+	magigNum := ""
+	for x := 0; x < 9; x++ {
+		if miSB.SbMagigNum[x] != 0 { //los que sean nulos no los concatena
+			magigNum += string(miSB.SbMagigNum[x])
+		}
+	}
+
+	cadenaRep += "<tr><td>sb_magin_num</td><td>" + magigNum + "</td></tr>\n"
+
+	cadenaRep += "</table>\n\n"
+	cadenaRep += ">];\n"
+	cadenaRep += "}"
+
+	crearDot(pathGuardar, cadenaRep)
+	crearImg(pathGuardar)
+
+}
+
+//-------------------------------FIN REPORTE SB-------------------------------//
+
+//---------------------------------REPORTE BITMAP ---------------------------------//
+
+func reporteBitmapAVD(path string, starPart int64, pathGuardar string) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMapAVD := miSB.SbApInicioBitmapArbolDirectorio
+
+	//me posiciono en el archivo
+	file.Seek(starBitMapAVD, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadEstructurasArbolDirectorio
+	sbcl := miSB.SbCantidadEstructurasArbolDirectorioLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmapAVD := make([]int8, tamanioBitmap)
+	tamarrBitmapAVD := int(binary.Size(arrBitmapAVD))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmapAVD))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmapAVD)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	cadenaRep := ""
+
+	for i := 0; i < len(arrBitmapAVD); i++ {
+		if i%20 == 0 && i > 0 {
+			cadenaRep += "\n"
+		}
+		cadenaRep += strconv.Itoa(int(arrBitmapAVD[i])) + ","
+	}
+	createBITMAP(pathGuardar, cadenaRep)
+}
+
+func reporteBitmapDD(path string, starPart int64, pathGuardar string) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMapDD := miSB.SbApInicioBitmapDetalleDirectorio
+
+	//me posiciono en el archivo
+	file.Seek(starBitMapDD, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadEstructurasDetalleDirectorio
+	sbcl := miSB.SbCantidadEstructurasDetalleDirectorioLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmapDD := make([]int8, tamanioBitmap)
+	tamarrBitmapDD := int(binary.Size(arrBitmapDD))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmapDD))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmapDD)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	cadenaRep := ""
+
+	for i := 0; i < len(arrBitmapDD); i++ {
+		if i%20 == 0 && i > 0 {
+			cadenaRep += "\n"
+		}
+		cadenaRep += strconv.Itoa(int(arrBitmapDD[i])) + ","
+	}
+	createBITMAP(pathGuardar, cadenaRep)
+}
+
+func reporteBitmapInodo(path string, starPart int64, pathGuardar string) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMapI := miSB.SbApInicioBitmapInodos
+
+	//me posiciono en el archivo
+	file.Seek(starBitMapI, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadInodos
+	sbcl := miSB.SbCantidadInodosLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmapI := make([]int8, tamanioBitmap)
+	tamarrBitmapI := int(binary.Size(arrBitmapI))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmapI))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmapI)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	cadenaRep := ""
+
+	for i := 0; i < len(arrBitmapI); i++ {
+		if i%20 == 0 && i > 0 {
+			cadenaRep += "\n"
+		}
+		cadenaRep += strconv.Itoa(int(arrBitmapI[i])) + ","
+	}
+	createBITMAP(pathGuardar, cadenaRep)
+}
+
+func reporteBitmapBloques(path string, starPart int64, pathGuardar string) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMapBloq := miSB.SbApInicioBitmapBloques
+
+	//me posiciono en el archivo
+	file.Seek(starBitMapBloq, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadBloques
+	sbcl := miSB.SbCantidadBloquesLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmapBloq := make([]int8, tamanioBitmap)
+	tamarrBitmapBloq := int(binary.Size(arrBitmapBloq))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmapBloq))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmapBloq)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	cadenaRep := ""
+
+	for i := 0; i < len(arrBitmapBloq); i++ {
+		if i%20 == 0 && i > 0 {
+			cadenaRep += "\n"
+		}
+		cadenaRep += strconv.Itoa(int(arrBitmapBloq[i])) + ","
+	}
+	createBITMAP(pathGuardar, cadenaRep)
+}
+
+func createBITMAP(path string, cadena string) {
+
+	file, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	// Write String to file
+	bytes2, err := file.WriteString(cadena)
+	if err != nil {
+		println(bytes2)
+		panic(err)
+	}
+}
+
+//---------------------------------FIN REPORTE BITMAP ----------------------------------//
 
 func crearDot(name string, cadena string) {
 	f := createFile(name + ".dot")
