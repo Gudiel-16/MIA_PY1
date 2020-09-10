@@ -4662,13 +4662,13 @@ func recorrerAVD(pathDisco string, starParticion int64, primerBitLibre int64, fi
 					//inserto struct
 					//avdInsertarStruct(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[porDondeVoyArrCarpetas+1])
 					//actualizo bitmap del AVD
-					avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
+					//avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
 					//obtengo el nuevo bit libre
-					newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+					//newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
 					//actualizo en el sb el nuevo bit libre del AVD
-					sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
+					//sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
 					//actualizo el numero de structuras del sb
-					sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+					//sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
 					break
 				}
 			}
@@ -4701,7 +4701,7 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 			//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
 			op2 := op1 * int(tamStruct)
 			//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
-			inicioLectura = starAVD + int64(op2) + 1 //############################+1#############################################################
+			inicioLectura = starAVD + int64(op2) + 1
 		}
 
 		file.Seek(inicioLectura, 0)
@@ -4721,83 +4721,113 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 
 		subDirectorios := miAVD.AvdArraySubDirectorios
 
-		nomDirect := ""
-		for j := 0; j < 16; j++ {
-			if miAVD.AvdNombreDirectorio[j] != 0 { //los que sean nulos no los concatena
-				nomDirect += string(miAVD.AvdNombreDirectorio[j])
-			}
-		}
-
 		//empezara en 0, luego en 1
 		for i := arrCarpetaDondeEmpezar; i < len(arrCarpetas)-1; i++ {
 
 			banderaInsert := false
 
-			if subDirectorioEstaLleno(subDirectorios) {
-				//apuntador indirecto
+			//if subDirectorioEstaLleno(subDirectorios) {
+			//apuntador indirecto
+			//fmt.Println("subdirectorio en: ", arrCarpetas[arrCarpetaDondeEmpezar], " lleno")
+			//esta vacio, y crea carpeta
+			//} else {
+			//crear carpeta
+			for x := 0; x < len(subDirectorios); x++ {
 
-				//esta vacio, y crea carpeta
-			} else {
-				//crear carpeta
-				for x := 0; x < len(subDirectorios); x++ {
+				bandera := false
 
-					bandera := false
+				if subDirectorios[x] != 0 {
 
-					if subDirectorios[x] != 0 {
-
-						//numero de apuntador
-						numApuntador := subDirectorios[x]
-						namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
-						if namesIguales {
-							//existe carpeta
-							fmt.Println("names iguales ")
-							banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
-							return true
-						} else {
-							//crear carpeta
-							for y := 0; y < len(subDirectorios); y++ {
-								if subDirectorios[y] == 0 {
-									fmt.Println("2guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
-									//actualizar apuntador del directorio actual
-									avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(y), primerBitLibre)
-									//crear directorio
-									avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar+1])
-									//actualizo bitmap del AVD
-									avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
-									//obtengo el nuevo bit libre
-									newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
-									//actualizo en el sb el nuevo bit libre del AVD
-									sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
-									//actualizo el numero de structuras del sb
-									sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
-									bandera = true
-									return true
-								}
+					//numero de apuntador
+					numApuntador := subDirectorios[x]
+					namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
+					if namesIguales {
+						//existe carpeta
+						fmt.Println("names iguales ")
+						banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
+						return true
+					} else {
+						//crear carpeta
+						for y := 0; y < len(subDirectorios); y++ {
+							if subDirectorios[y] == 0 {
+								fmt.Println("2guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
+								//actualizar apuntador del directorio actual
+								avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(y), primerBitLibre)
+								//crear directorio
+								avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar+1])
+								//actualizo bitmap del AVD
+								avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
+								//obtengo el nuevo bit libre
+								newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+								//actualizo en el sb el nuevo bit libre del AVD
+								sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
+								//actualizo el numero de structuras del sb
+								sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+								bandera = true
+								return true
 							}
 						}
-
-					} else if subDirectorios[x] == 0 {
-						fmt.Println("1guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
-						//actualizar apuntador del directorio actual
-						avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(x), primerBitLibre)
-						//crear directorio
-						avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar+1])
-						//actualizo bitmap del AVD
-						avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
-						//obtengo el nuevo bit libre
-						newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
-						//actualizo en el sb el nuevo bit libre del AVD
-						sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
-						//actualizo el numero de structuras del sb
-						sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
-						return true
 					}
 
-					if bandera {
-						return true
+				} else if subDirectorios[x] == 0 {
+					fmt.Println("1guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
+					//actualizar apuntador del directorio actual
+					avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(x), primerBitLibre)
+					//crear directorio
+					avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar+1])
+					//actualizo bitmap del AVD
+					avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
+					//obtengo el nuevo bit libre
+					newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+					//actualizo en el sb el nuevo bit libre del AVD
+					sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
+					//actualizo el numero de structuras del sb
+					sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+					return true
+				}
+
+				if bandera {
+					return true
+				}
+
+				//cuando esten en la ultima posicion
+				if x == len(subDirectorios)-1 {
+					//verifica que esten llenos
+					if subDirectorioEstaLleno(subDirectorios) {
+						//si hay que crear apuntador indirecto
+						if miAVD.AvdApIndirecto == 0 {
+							fmt.Println("hay que crear apuntador indirecto")
+							fmt.Println("bit libre: ", primerBitLibre)
+							//actualizo apuntador indirecto
+							avdaActualizarApuntadorIndirectoDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, primerBitLibre)
+							//creo directorio
+							avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar])
+							//actualizo bitmap del AVD
+							avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
+							//obtengo el nuevo bit libre
+							newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+							//actualizo en el sb el nuevo bit libre del AVD
+							sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
+							//actualizo el numero de structuras del sb
+							sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+							//se le envia 'primerBitLibre' de ultimo porque se acaba de crear el struct indirecto, y entonces ira a leer ese struct
+							//y se le envia el nuevo bit libre
+							//se le envia 0 en 'arrCarpetaDondeEmpezar' para que vuelva a leer arreglo carpetas solo que con el nuevo struc
+							banderaInsert = avdRecursive(arrCarpetas, 0, pathDisco, starAVD, starParticion, int64(newBitLibre), tamStruct, int(primerBitLibre))
+							return true
+
+							//si ya existe apuntador indirecto
+						} else {
+							//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
+							structLeer := miAVD.AvdApIndirecto
+							banderaInsert = avdRecursive(arrCarpetas, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
+							return true
+						}
 					}
 				}
 			}
+
+			//}
 			if banderaInsert {
 				break
 			}
@@ -4953,6 +4983,55 @@ func avdaActualizarApuntadorDeDirectorioActual(pathDisco string, starAVD int64, 
 
 	println("Posicion: ", posApuntador, " numApuntador: ", bitLibre)
 
+}
+
+func avdaActualizarApuntadorIndirectoDeDirectorioActual(pathDisco string, starAVD int64, numEstruct int64, tamStruct int64, bitLibre int64) {
+
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numEstruct == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numEstruct - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	miAVD := ArbolVirtualDirectorio{}
+
+	data := leerBytesFdisk(file, int(tamStruct))
+	buffer := bytes.NewBuffer(data)
+
+	err = binary.Read(buffer, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	miAVD.AvdApIndirecto = bitLibre
+
+	//guardo
+	file.Seek(inicioLectura, 0)
+
+	s1 := &miAVD
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	println("numApuntadorIndirecto: ", bitLibre)
 }
 
 //inserta un struct en la posicion indicada
@@ -5303,6 +5382,8 @@ func operacionRep(name string, path string, id string, ruta string) {
 			reporteBitmapInodo(pathDisco, starPart, path)
 		} else if strings.Compare(strings.ToLower(name), "bm_block") == 0 {
 			reporteBitmapBloques(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "tree_directorio") == 0 {
+			reporteGeneralDirectorio(pathDisco, starPart, path)
 		}
 	} else {
 		fmt.Print("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
@@ -6715,6 +6796,230 @@ func createBITMAP(path string, cadena string) {
 }
 
 //---------------------------------FIN REPORTE BITMAP ----------------------------------//
+
+//---------------------------------REPORTE DIRECTORIOS ----------------------------------//
+
+func reporteGeneralDirectorio(path string, starPart int64, pathGuardar string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+	starAVD := miSB.SbApInicioArbolDirectorio
+
+	cadenaRep := ""
+
+	cuerpoCad := retornarCadenaGeneralDirectorio(path, starAVD, starPart, tamStructAVD, 1, cadenaRep)
+
+	graph := "digraph {\n\n"
+	graph += cuerpoCad
+	graph += "}"
+
+	crearDot(pathGuardar, graph)
+	crearImg(pathGuardar)
+	//fmt.Println(graph)
+
+}
+
+func retornarCadenaGeneralDirectorio(pathDisco string, starAVD int64, starParticion int64, tamStruct int64, numStructLeer int, cadenaRep string) string {
+
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct actual
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	subDirectorios := miAVD.AvdArraySubDirectorios
+
+	//para crear tabla, se crea la tabla o estructura del directorio, para luego hacer los enlaces
+	nombreDirectorio := retornarNombreSinEspaciosNulos(miAVD.AvdNombreDirectorio)
+
+	textTabla := ""
+	if strings.Compare(nombreDirectorio, "/") == 0 {
+		textTabla += "raiz" + strconv.Itoa(int(numStructLeer)) + " [ \n"
+	} else {
+		textTabla += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + " [\n"
+	}
+	textTabla += "shape=plaintext\n"
+	textTabla += "label=<\n"
+	textTabla += "<table border='1' cellborder='1'>\n"
+	textTabla += "<tr><td colspan=\"8\">" + nombreDirectorio + "</td></tr>\n"
+	textTabla += "<tr><td port='ap0'></td><td port='ap1'></td><td port='ap2'></td><td port='ap3'></td><td port='ap4'></td><td port='ap5'></td><td bgcolor='blue' port='dd'></td><td bgcolor='green' port='apInd'></td></tr>\n"
+	textTabla += "</table>\n"
+	textTabla += ">];\n"
+
+	cadenaRep += textTabla
+
+	for x := 0; x < len(subDirectorios); x++ {
+
+		if subDirectorios[x] != 0 {
+
+			//numero de apuntador
+			numApuntador := subDirectorios[x]
+
+			//obtengo el nombre hacia donde apunta mi directorio actual
+			nombreSig := retornarNombreHaciaDondeApunta(pathDisco, starAVD, starParticion, tamStruct, int(numApuntador))
+			cadApuntador := ""
+			//si el directorio es la raiz
+			if strings.Compare(nombreDirectorio, "/") == 0 {
+				cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":ap" + strconv.Itoa(int(x)) + " -> " + nombreSig + "\n"
+
+				//si no es raiz
+			} else {
+				cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":ap" + strconv.Itoa(int(x)) + " -> " + nombreSig + "\n"
+			}
+
+			cadenaRep += cadApuntador
+
+			cadenaRep += retornarCadenaGeneralDirectorio(pathDisco, starAVD, starParticion, tamStruct, int(numApuntador), "")
+		}
+
+		//cuando esten en la ultima posicion
+		if x == len(subDirectorios)-1 {
+			//verifica que esten llenos
+			if subDirectorioEstaLleno(subDirectorios) {
+				//si tiene apuntador indirecto
+				if miAVD.AvdApIndirecto != 0 {
+
+					//obtengo el nombre hacia donde apunta mi directorio actual
+					nombreSig := retornarNombreHaciaDondeApunta(pathDisco, starAVD, starParticion, tamStruct, int(miAVD.AvdApIndirecto))
+					cadApuntador := ""
+
+					//si el directorio es la raiz
+					if strings.Compare(nombreDirectorio, "/") == 0 {
+						//si el directorio hacia donde apunta es la raiz
+						//.constains porque devuelve el nombre con el apuntador, ejemplo /3
+						if strings.Contains(nombreSig, "/") {
+							cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + "raiz" + strconv.Itoa(int(miAVD.AvdApIndirecto)) + "\n"
+
+							//si el directorio hacia donde apunta no es la raiz
+						} else {
+							cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + "\n"
+						}
+
+						//si no es el directorio raiz
+					} else {
+						cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + strconv.Itoa(int(miAVD.AvdApIndirecto)) + "\n"
+					}
+
+					cadenaRep += cadApuntador
+
+					cadenaRep += retornarCadenaGeneralDirectorio(pathDisco, starAVD, starParticion, tamStruct, int(miAVD.AvdApIndirecto), "")
+				}
+			}
+		}
+	}
+	return cadenaRep
+}
+
+func retornarNombreHaciaDondeApunta(pathDisco string, starAVD int64, starParticion int64, tamStruct int64, numStructLeer int) string {
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct actual
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//obtengo el nombre del directorio
+	nombreDirectorio := retornarNombreSinEspaciosNulos(miAVD.AvdNombreDirectorio)
+	//concateno el nombre conel apuntador
+	nombreDirectorio += strconv.Itoa(int(numStructLeer))
+	return nombreDirectorio
+}
+
+func retornarNombreSinEspaciosNulos(arr [16]byte) string {
+	nombre := ""
+	for x := 0; x < 16; x++ {
+		if arr[x] != 0 { //los que sean nulos no los concatena
+			nombre += string(arr[x])
+		}
+	}
+	return nombre
+}
+
+//---------------------------------REPORTE DIRECTORIOS ----------------------------------//
 
 func crearDot(name string, cadena string) {
 	f := createFile(name + ".dot")
