@@ -4608,7 +4608,7 @@ func operacionMkdir(id string, pathCarpetas string, p bool) {
 	//file.Seek(starAVD, 0)
 
 	//recorrerAVD(pathDisco, starParticion, primerBitLibre, file, err, nombresCarpetasComoArreglo, starAVD, 0, 1, tamStructAVD)
-
+	fmt.Println(nombresCarpetasComoArreglo)
 	avdRecursive(nombresCarpetasComoArreglo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
 
 }
@@ -4676,7 +4676,9 @@ func recorrerAVD(pathDisco string, starParticion int64, primerBitLibre int64, fi
 	}
 }
 
-func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) {
+func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
+
+	fmt.Println("arr: ", arrCarpetaDondeEmpezar)
 
 	//cuando ya este en la ultima parara, es mi if de parada
 	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
@@ -4729,6 +4731,8 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 		//empezara en 0, luego en 1
 		for i := arrCarpetaDondeEmpezar; i < len(arrCarpetas)-1; i++ {
 
+			banderaInsert := false
+
 			if subDirectorioEstaLleno(subDirectorios) {
 				//apuntador indirecto
 
@@ -4737,15 +4741,18 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 				//crear carpeta
 				for x := 0; x < len(subDirectorios); x++ {
 
+					bandera := false
+
 					if subDirectorios[x] != 0 {
 
 						//numero de apuntador
-						numApuntador := subDirectorios[i]
-						namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[i+1])
+						numApuntador := subDirectorios[x]
+						namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
 						if namesIguales {
 							//existe carpeta
-							fmt.Println("names iguales")
-							avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
+							fmt.Println("names iguales ")
+							banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
+							return true
 						} else {
 							//crear carpeta
 							for y := 0; y < len(subDirectorios); y++ {
@@ -4763,7 +4770,8 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 									sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
 									//actualizo el numero de structuras del sb
 									sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
-									break
+									bandera = true
+									return true
 								}
 							}
 						}
@@ -4782,13 +4790,20 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 						sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
 						//actualizo el numero de structuras del sb
 						sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
-						break
+						return true
+					}
+
+					if bandera {
+						return true
 					}
 				}
 			}
+			if banderaInsert {
+				break
+			}
 		}
 	}
-
+	return false
 }
 
 func subDirectorioTieneApuntadores(arrSub [6]int64) bool {
@@ -4846,6 +4861,8 @@ func avdSonIgualesLosNombres(pathDisco string, starAVD int64, tamStruct int64, n
 		}
 	}
 
+	fmt.Println("IGUALDAD: numAp: ", numApuntador, " ", nomDirect, " = ", nameDirectorio)
+
 	if strings.Compare(strings.ToLower(nomDirect), strings.ToLower(nameDirectorio)) == 0 {
 		return true
 	}
@@ -4880,6 +4897,8 @@ func avdCrearDirectorio(pathDisco string, starAVD int64, bitLibre int64, tamStru
 	var binario1 bytes.Buffer
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
+
+	fmt.Println("crear Directorio: ", nameDirectorio, " En posicion Disco: ", bitLibre)
 
 }
 
@@ -4931,6 +4950,8 @@ func avdaActualizarApuntadorDeDirectorioActual(pathDisco string, starAVD int64, 
 	var binario1 bytes.Buffer
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
+
+	println("Posicion: ", posApuntador, " numApuntador: ", bitLibre)
 
 }
 
