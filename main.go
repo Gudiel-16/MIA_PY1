@@ -192,7 +192,7 @@ func leerEntrada() {
 	var enviar bool = false
 	var concatenar string = ""
 	for true {
-		fmt.Print("\n[ nuevo comando ]% ")
+		fmt.Println("\n[ nuevo comando ]% ")
 		lectura := bufio.NewReader(os.Stdin)
 		entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
 		eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
@@ -514,11 +514,11 @@ func mkdiskComando(index int) {
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
 				size = tam
 				if err != nil {
-					fmt.Print("\n[ ERROR: Debe ingresar un numero en size de MKDISK ]")
+					fmt.Println("\n[ ERROR: Debe ingresar un numero en size de MKDISK ]")
 				}
 
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKDISK' -> 'Size' ]")
+				fmt.Println("\n[ ERROR: comando 'MKDISK' -> 'Size' ]")
 			}
 
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
@@ -531,25 +531,49 @@ func mkdiskComando(index int) {
 					path = ruta
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKDISK' -> 'path' ]")
+				fmt.Println("\n[ ERROR: comando 'MKDISK' -> 'path' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
-				name = listaComandos[i+2] //name
+				nombre := listaComandos[i+2]        //name
+				if strings.Contains(nombre, "\"") { //si el nombre viene contiene comillas
+					nombre2 := nombre[1 : len(nombre)-1] //le quitamos comillas al nombre
+					name = nombre2
+				} else { //sino tiene comillas manda la ruta normal
+					name = nombre
+				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKDISK' -> 'name' ]")
+				fmt.Println("\n[ ERROR: comando 'MKDISK' -> 'name' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unit") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				unit = listaComandos[i+2] //toma el string
 			} else {
-				fmt.Print("\n[ ERROR:  Se ha producido un error con el comando 'MKDISK' -> 'unit' ]")
+				fmt.Println("\n[ ERROR:  Se ha producido un error con el comando 'MKDISK' -> 'unit' ]")
 			}
 		}
 	}
 
+	creandoRutas(path)
 	crearArchivo(size, path, name, unit)
 
+}
+
+//creando rutas sino existen
+func creandoRutas(path string) {
+	delimitador := "/"
+	separador := "/"
+	rutaCreando := ""
+
+	nombresComoArreglo := strings.Split(path, delimitador)
+
+	for i := 0; i < len(nombresComoArreglo); i++ {
+		if strings.Compare(nombresComoArreglo[i], "") != 0 {
+			rutaCreando += separador + nombresComoArreglo[i]
+			crearDirectorioSiNoExiste(rutaCreando)
+			//fmt.Println(rutaCreando)
+		}
+	}
 }
 
 //crea el archivo (disco)
@@ -642,15 +666,52 @@ func rmdiskComando(index int) {
 				ruta := listaComandos[i+2]        //ruta
 				if strings.Contains(ruta, "\"") { //si la ruta que viene contiene comillas
 					ruta2 := ruta[1 : len(ruta)-1] //le quitamos comillas a la ruta
-					os.Remove(ruta2)
+					if existeArchivo(ruta2) {
+
+						fmt.Println("\nSEGURO QUE DESEA ELIMINAR DISCO CON RUTA: ", ruta2, " [s/n]")
+						lectura := bufio.NewReader(os.Stdin)
+						entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
+						eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
+
+						if strings.Compare(strings.ToLower(eleccion), "s") == 0 {
+							os.Remove(ruta2)
+							fmt.Println("\nDISCO ELIMINADO CORRECTAMENTE, CON RUTA: ", ruta2)
+						}
+
+					} else {
+						fmt.Println("\n[ ERROR: no existe Disco con la ruta: " + ruta2 + " ]")
+					}
 				} else { //sino tiene comillas manda la ruta normal
-					os.Remove(ruta)
+					if existeArchivo(ruta) {
+
+						fmt.Println("\nSEGURO QUE DESEA ELIMINAR DISCO CON RUTA: ", ruta, " [s/n]")
+						lectura := bufio.NewReader(os.Stdin)
+						entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
+						eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
+
+						if strings.Compare(strings.ToLower(eleccion), "s") == 0 {
+							os.Remove(ruta)
+							fmt.Println("\nDISCO ELIMINADO CORRECTAMENTE, CON RUTA: ", ruta)
+						}
+
+					} else {
+						fmt.Println("\n[ ERROR: no existe Disco con la ruta: " + ruta + " ]")
+					}
 				}
 			} else {
-				fmt.Print("\n[ ERROR: formato del comando 'rmdisk' ]")
+				fmt.Println("\n[ ERROR: formato del comando 'rmdisk' ]")
 			}
 		}
 	}
+}
+
+func existeArchivo(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 //-------------------------------FIN RMDISK-------------------------------//
@@ -674,18 +735,18 @@ func fdiskComando(index int) {
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
 				size = int64(tam)
 				if err != nil {
-					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
+					fmt.Println("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
 				}
 
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'size' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'size' ]")
 			}
 
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unit") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				unit = listaComandos[i+2] //toma el string
 			} else {
-				fmt.Print("\n[ ERROR:  Se ha producido un error con el comando 'FDISK' -> 'unit' ]")
+				fmt.Println("\n[ ERROR:  Se ha producido un error con el comando 'FDISK' -> 'unit' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 { //cuando encuentre palabra reservada path
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
@@ -697,41 +758,47 @@ func fdiskComando(index int) {
 					path = ruta
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'path' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'path' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "type") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				typee = listaComandos[i+2] //name
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'type' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'type' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "fit") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				fit = listaComandos[i+2] //name
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'fit' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'fit' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "delete") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				deletee = listaComandos[i+2] //name
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'delete' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'delete' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
-				name = listaComandos[i+2] //name
+				nombre := listaComandos[i+2]        //name
+				if strings.Contains(nombre, "\"") { //si el nombre viene contiene comillas
+					nombre2 := nombre[1 : len(nombre)-1] //le quitamos comillas al nombre
+					name = nombre2
+				} else { //sino tiene comillas manda la ruta normal
+					name = nombre
+				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'name' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'name' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "add") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
 				add = tam
 				if err != nil {
-					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
+					fmt.Println("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'FDISK' -> 'add' ]")
+				fmt.Println("\n[ ERROR: comando 'FDISK' -> 'add' ]")
 			}
 		}
 	}
@@ -744,12 +811,30 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 	if strings.Compare(deletee, "") != 0 { //si hay que eliminar una particion
 		//si existe particion primaria o extendida con ese nombre
 		if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
-			eliminarParticionPrimariaExtendida(path, name)
+			fmt.Println("\nSEGURO QUE DESEA ELIMINAR PARTICION CON NOMBRE: ", name, " [s/n]")
+			lectura := bufio.NewReader(os.Stdin)
+			entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
+			eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
+
+			if strings.Compare(strings.ToLower(eleccion), "s") == 0 {
+				eliminarParticionPrimariaExtendida(path, name)
+				fmt.Println("\nPARTICION ELIMINADA CORRECTAMENTE, CON NOMBRE: ", name)
+			}
+
 			//si existe particion logica con ese nombre
 		} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
-			eliminarParticionLogica(path, name)
+			fmt.Println("\nSEGURO QUE DESEA ELIMINAR PARTICION CON NOMBRE: ", name, " [s/n]")
+			lectura := bufio.NewReader(os.Stdin)
+			entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
+			eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
+
+			if strings.Compare(strings.ToLower(eleccion), "s") == 0 {
+				eliminarParticionLogica(path, name)
+				fmt.Println("\nPARTICION LOGICA ELIMINADA CORRECTAMENTE, CON NOMBRE: ", name)
+			}
+
 		} else {
-			fmt.Print("\n[ ERROR: no exite particion con nombre: ", name, " ]")
+			fmt.Println("\n[ ERROR: no exite particion con nombre: ", name, " ]")
 		}
 
 		//si es add
@@ -761,7 +846,7 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 				//agrega o quita espacio en extendida o primaria
 				addEspacioEnPrimariaExtendida(path, name, unit, int64(add))
 			} else {
-				fmt.Print("\n[ ERROR: no se puede agregar o quitar espacio en particion con nombre: ", name, " ]")
+				fmt.Println("\n[ ERROR: no se puede agregar o quitar espacio en particion con nombre: ", name, " ]")
 			}
 
 			//si existe particion logica con ese nombre
@@ -771,10 +856,10 @@ func operacionFdisk(size int64, unit string, path string, typee string, fit stri
 				//agrega o quita espacio en logica
 				addEspacioEnLogica(path, name, unit, int64(add))
 			} else {
-				fmt.Print("\n[ ERROR: no se puede agregar o quitar espacio en particion Logica con nombre: ", name, " ]")
+				fmt.Println("\n[ ERROR: no se puede agregar o quitar espacio en particion Logica con nombre: ", name, " ]")
 			}
 		} else {
-			fmt.Print("\n[ ERROR: no exite particion con nombre: ", name, " ]")
+			fmt.Println("\n[ ERROR: no exite particion con nombre: ", name, " ]")
 		}
 
 		//crear paarticion
@@ -796,7 +881,7 @@ func agregarParticion(size int64, unit string, path string, typee string, fit st
 					//inserta particion primaria
 					insertarParticionPrimaria(path, size, typee, fit, name, unit)
 				} else {
-					fmt.Print("\n[ ERROR: no hay espacio para agregar la particion primaria: ", name, " ]")
+					fmt.Println("\n[ ERROR: no hay espacio para agregar la particion primaria: ", name, " ]")
 				}
 				//si es extendida
 			} else if strings.Compare(strings.ToLower(typee), "e") == 0 {
@@ -808,15 +893,15 @@ func agregarParticion(size int64, unit string, path string, typee string, fit st
 						//inserta particion extendida
 						insertarParticionExtendida(path, size, typee, fit, name, unit)
 					} else {
-						fmt.Print("\n[ ERROR: no hay espacio para agregar la particion extendida: ", name, " ]")
+						fmt.Println("\n[ ERROR: no hay espacio para agregar la particion extendida: ", name, " ]")
 					}
 
 				} else {
-					fmt.Print("\n[ ERROR: ya existe particion extendida en el disco, no se puede agregar: ", name, " ]")
+					fmt.Println("\n[ ERROR: ya existe particion extendida en el disco, no se puede agregar: ", name, " ]")
 				}
 			}
 		} else {
-			fmt.Print("\n[ ERROR: Ya alcanzo el limite de de particiones en el disco: ]")
+			fmt.Println("\n[ ERROR: Ya alcanzo el limite de de particiones en el disco: ]")
 		}
 		//si es logica
 	} else if strings.Compare(strings.ToLower(typee), "l") == 0 {
@@ -828,10 +913,10 @@ func agregarParticion(size int64, unit string, path string, typee string, fit st
 				reposicionarLogicas(path, size, unit)
 				insertarParticionLogica(path, size, typee, fit, name, unit)
 			} else {
-				fmt.Print("\n[ ERROR: no hay espacio para agregar la particion logica: ", name, " ]")
+				fmt.Println("\n[ ERROR: no hay espacio para agregar la particion logica: ", name, " ]")
 			}
 		} else {
-			fmt.Print("\n[ ERROR: no existe particion extendida en el disco, no se puede agregar: ", name, " ]")
+			fmt.Println("\n[ ERROR: no existe particion extendida en el disco, no se puede agregar: ", name, " ]")
 		}
 	}
 }
@@ -3646,13 +3731,19 @@ func mountComando(index int) {
 					path = ruta
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MOUNT' -> 'path' ]")
+				fmt.Println("\n[ ERROR: comando 'MOUNT' -> 'path' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
-				name = listaComandos[i+2] //name
+				nombre := listaComandos[i+2]        //name
+				if strings.Contains(nombre, "\"") { //si el nombre viene contiene comillas
+					nombre2 := nombre[1 : len(nombre)-1] //le quitamos comillas al nombre
+					name = nombre2
+				} else { //sino tiene comillas manda la ruta normal
+					name = nombre
+				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MOUNT' -> 'name' ]")
+				fmt.Println("\n[ ERROR: comando 'MOUNT' -> 'name' ]")
 			}
 		}
 	}
@@ -3666,18 +3757,25 @@ func montarParticion(path string, name string) {
 		//muestra particiones montadas
 		mostrarMount()
 	} else {
-		//si es particion primaria o extend
-		if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
-			generarIDMountYGuardar(path, name)
-			fmt.Println("SE MONTO PARTICION:")
-			fmt.Println("	Nombre: ", name)
-			//si es particion logica
-		} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
-			generarIDMountYGuardar(path, name)
-			fmt.Println("SE MONTO PARTICION:")
-			fmt.Println("	Nombre: ", name)
+
+		if existeYaEseMount(path, name) == false {
+
+			//si es particion primaria o extend
+			if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
+				generarIDMountYGuardar(path, name)
+				fmt.Println("SE MONTO PARTICION:")
+				fmt.Println("	Nombre: ", name)
+				//si es particion logica
+			} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
+				generarIDMountYGuardar(path, name)
+				fmt.Println("SE MONTO PARTICION:")
+				fmt.Println("	Nombre: ", name)
+			} else {
+				fmt.Println("\n[ ERROR: no se puede montar particion con nombre: ", name, " porque no existe ]")
+			}
+
 		} else {
-			fmt.Print("\n[ ERROR: no se puede montar particion con nombre: ", name, " porque no existe ]")
+			fmt.Println("\nYA EXISTE PARTICION MONTADA CON NOMBRE: ", name, " Y PATH: ", path)
 		}
 
 	}
@@ -3859,6 +3957,28 @@ func mostrarMount() {
 	}
 }
 
+func existeYaEseMount(path string, name string) bool {
+	for k, v := range mapaMount {
+		//fmt.Println("key: ", k, " ---> ", v)
+
+		//cuando encuentre el path
+		if strings.Compare(strings.ToLower(k), strings.ToLower(path)) == 0 {
+			array := v
+			//recorro array de mount
+			for i := 0; i < len(array); i++ {
+				miMount := array[i]
+				//si encuantra el nombre de particion
+				if strings.Compare(strings.ToLower(miMount.Name), strings.ToLower(name)) == 0 {
+					return true
+				}
+			}
+		}
+
+	}
+
+	return false
+}
+
 func pruebaMount() {
 	mapa := make(map[string][]NodoMount)
 
@@ -3940,7 +4060,7 @@ func unmountComando(index int) {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				idn = append(idn, listaComandos[i+2]) //name
 			} else {
-				fmt.Print("\n[ ERROR: comando 'UNMOUNT' -> 'idn' ]")
+				fmt.Println("\n[ ERROR: comando 'UNMOUNT' -> 'idn' ]")
 			}
 		}
 	}
@@ -3969,7 +4089,7 @@ func desmontarParticion(ids []string) {
 		}
 
 		if bandera == false {
-			fmt.Print("\n[ ERROR: no se puede desmontar particion con nombre: ", idEliminar, " porque no existe ]")
+			fmt.Println("\n[ ERROR: no se puede desmontar particion con nombre: ", idEliminar, " porque no existe ]")
 		}
 	}
 }
@@ -3993,29 +4113,29 @@ func mkfsComando(index int) {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
 				id = listaComandos[i+2]
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'id' ]")
+				fmt.Println("\n[ ERROR: comando 'MKFS' -> 'id' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "type") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				typee = listaComandos[i+2]
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'type' ]")
+				fmt.Println("\n[ ERROR: comando 'MKFS' -> 'type' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "add") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
 				add = tam
 				if err != nil {
-					fmt.Print("\n[ ERROR: Debe ingresar un numero en 'add' de 'MKFS' ]")
+					fmt.Println("\n[ ERROR: Debe ingresar un numero en 'add' de 'MKFS' ]")
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'add' ]")
+				fmt.Println("\n[ ERROR: comando 'MKFS' -> 'add' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "unit") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				unit = listaComandos[i+2]
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKFS' -> 'unit' ]")
+				fmt.Println("\n[ ERROR: comando 'MKFS' -> 'unit' ]")
 			}
 		}
 	}
@@ -4536,7 +4656,7 @@ func mkdirComando(index int) {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
 				id = listaComandos[i+2]
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKDIR' -> 'id' ]")
+				fmt.Println("\n[ ERROR: comando 'MKDIR' -> 'id' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
@@ -4548,13 +4668,13 @@ func mkdirComando(index int) {
 					path = ruta
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKDIR' -> 'path' ]")
+				fmt.Println("\n[ ERROR: comando 'MKDIR' -> 'path' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "p") == 0 {
 			if strings.Compare(listaComandos[i-1], "-") == 0 { // validar si esta de esta forma -name->
 
 			} else {
-				fmt.Print("\n[ ERROR: comando 'MKDIR' -> 'P' ]")
+				fmt.Println("\n[ ERROR: comando 'MKDIR' -> 'P' ]")
 			}
 		}
 	}
@@ -5303,9 +5423,15 @@ func repComando(index int) {
 
 		if strings.Compare(strings.ToLower(listaComandos[i]), "name") == 0 { //cuando encuentre palabra reservada path
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
-				name = listaComandos[i+2]
+				nombre := listaComandos[i+2]        //name
+				if strings.Contains(nombre, "\"") { //si el nombre viene contiene comillas
+					nombre2 := nombre[1 : len(nombre)-1] //le quitamos comillas al nombre
+					name = nombre2
+				} else { //sino tiene comillas manda la ruta normal
+					name = nombre
+				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'REP' -> 'name' ]")
+				fmt.Println("\n[ ERROR: comando 'REP' -> 'name' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
@@ -5317,13 +5443,13 @@ func repComando(index int) {
 					path = rt
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'REP' -> 'path' ]")
+				fmt.Println("\n[ ERROR: comando 'REP' -> 'path' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "id") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
 				id = listaComandos[i+2]
 			} else {
-				fmt.Print("\n[ ERROR: comando 'REP' -> 'id' ]")
+				fmt.Println("\n[ ERROR: comando 'REP' -> 'id' ]")
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "ruta") == 0 {
 			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
@@ -5335,7 +5461,7 @@ func repComando(index int) {
 					ruta = rt
 				}
 			} else {
-				fmt.Print("\n[ ERROR: comando 'REP' -> 'ruta' ]")
+				fmt.Println("\n[ ERROR: comando 'REP' -> 'ruta' ]")
 			}
 		}
 	}
@@ -5386,7 +5512,7 @@ func operacionRep(name string, path string, id string, ruta string) {
 			reporteGeneralDirectorio(pathDisco, starPart, path)
 		}
 	} else {
-		fmt.Print("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
+		fmt.Println("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
 	}
 }
 
