@@ -180,7 +180,7 @@ type LogBitacora struct {
 	LogTipoOperacion [20]byte
 	LogTipo          int64    // 0 si es archivo, 1 si es directorio
 	LogNombre        [20]byte //nombre archivo o directorio
-	LogContenido     [15]byte
+	LogContenido     [50]byte
 	LogFecha         [20]byte
 }
 
@@ -192,7 +192,7 @@ func leerEntrada() {
 	var enviar bool = false
 	var concatenar string = ""
 	for true {
-		fmt.Println("\n[ nuevo comando ]% ")
+		fmt.Print("\n[nuevo comando]%% ")
 		lectura := bufio.NewReader(os.Stdin)
 		entrada, _ := lectura.ReadString('\n')         // Leer hasta el separador de salto de línea
 		eleccion := strings.TrimRight(entrada, "\r\n") // Remover el salto de línea de la entrada del usuario
@@ -415,6 +415,8 @@ func logica() {
 			repComando(i)
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mkdir") == 0 {
 			mkdirComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mkfile") == 0 {
+			mkfileComando(i)
 		}
 	}
 }
@@ -4163,7 +4165,7 @@ func operacionMkfs(id string, typee string, add int, unit string) {
 	bloques := bloque{}
 	tamanioBloques := int(unsafe.Sizeof(bloques))
 	bitacora := LogBitacora{}
-	tamanioBitacora := int(unsafe.Sizeof(bitacora))
+	tamanioBitacora := int(binary.Size(bitacora))
 
 	//numero de estructuras
 
@@ -4631,8 +4633,13 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 	escribirBytes(file, binario10.Bytes())
 
 	//GUARDANDO BITACORA
+
+	//numero de estructuras
+	tamArrayBitacora := bytesBitmapArbolVirtual
+	arrBitacora := make([]LogBitacora, int(tamArrayBitacora))
+
 	file.Seek(inicioLog, 0)
-	s11 := &sb
+	s11 := &arrBitacora
 	//Escribimos
 	var binario11 bytes.Buffer
 	binary.Write(&binario11, binary.BigEndian, s11)
@@ -4883,6 +4890,8 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 								sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
 								//actualizo el numero de structuras del sb
 								sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+								//guardar en bitacora
+								bitacoraGuardarStruct(pathDisco, starParticion, "mkdir", 1, arrCarpetas[arrCarpetaDondeEmpezar+1], "NAC")
 								bandera = true
 								return true
 							}
@@ -4903,6 +4912,8 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 					sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
 					//actualizo el numero de structuras del sb
 					sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+					//guardar en bitacora
+					bitacoraGuardarStruct(pathDisco, starParticion, "mkdir", 1, arrCarpetas[arrCarpetaDondeEmpezar+1], "NAC")
 					return true
 				}
 
@@ -4932,15 +4943,15 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 							sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
 							//se le envia 'primerBitLibre' de ultimo porque se acaba de crear el struct indirecto, y entonces ira a leer ese struct
 							//y se le envia el nuevo bit libre
-							//se le envia 0 en 'arrCarpetaDondeEmpezar' para que vuelva a leer arreglo carpetas solo que con el nuevo struc
-							banderaInsert = avdRecursive(arrCarpetas, 0, pathDisco, starAVD, starParticion, int64(newBitLibre), tamStruct, int(primerBitLibre))
+							//se le envia 'arrCarpetaDondeEmpezar' para que vuelva a leer arreglo carpetas solo que con el nuevo struc
+							banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, int64(newBitLibre), tamStruct, int(primerBitLibre))
 							return true
 
 							//si ya existe apuntador indirecto
 						} else {
 							//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
 							structLeer := miAVD.AvdApIndirecto
-							banderaInsert = avdRecursive(arrCarpetas, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
+							banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
 							return true
 						}
 					}
@@ -4949,7 +4960,7 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 
 			//}
 			if banderaInsert {
-				break
+				return true
 			}
 		}
 	}
@@ -5411,6 +5422,309 @@ func sbActualizarBitLibreAVD(path string, starPart int64, newBitLibre int64) {
 
 //--------------------------------------------------------FIN MKDIR--------------------------------------------------------//
 
+//--------------------------------------------------------INICIO MKFILE--------------------------------------------------------//
+
+func mkfileComando(index int) {
+	id := ""
+	pathArch := ""
+	p := false
+	size := 0
+	cont := ""
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "id") == 0 { //cuando encuentre palabra reservada path
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -path->
+				id = listaComandos[i+2]
+			} else {
+				fmt.Println("\n[ ERROR: comando 'MKFILE' -> 'id' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				rt := listaComandos[i+2]        //ruta
+				if strings.Contains(rt, "\"") { //si la ruta que viene contiene comillas
+					rt2 := rt[1 : len(rt)-1] //le quitamos comillas a la ruta
+					pathArch = rt2           //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					pathArch = rt
+				}
+			} else {
+				fmt.Println("\n[ ERROR: comando 'MKFILE' -> 'path' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "p") == 0 {
+			if strings.Compare(listaComandos[i-1], "-") == 0 { // validar si esta de esta forma -name->
+
+			} else {
+				fmt.Println("\n[ ERROR: comando 'MKFILE' -> 'P' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "size") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				tam, err := strconv.Atoi(listaComandos[i+2]) //convierto el valor a int
+				size = tam
+				if err != nil {
+					fmt.Println("\n[ ERROR: Debe ingresar un numero en 'size' de 'FDISK' ]")
+				}
+			} else {
+				fmt.Println("\n[ ERROR: comando 'MKFILE' -> 'size' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "cont") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				rt := listaComandos[i+2]        //ruta
+				if strings.Contains(rt, "\"") { //si la ruta que viene contiene comillas
+					rt2 := rt[1 : len(rt)-1] //le quitamos comillas a la ruta
+					cont = rt2               //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					cont = rt
+				}
+			} else {
+				fmt.Println("\n[ ERROR: comando 'MKFILE' -> 'cont' ]")
+			}
+		}
+	}
+
+	operacionMkfile(id, pathArch, p, size, cont)
+}
+
+func operacionMkfile(id string, pathArch string, p bool, sizeArch int, cont string) {
+	pathDisco := retornarPathDeParticionDadoID(id)
+	nameParticion := retornarNameDeParticionDadoID(id)
+	//tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
+	starParticion := retornarStarParticion(pathDisco, nameParticion)
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starParticion, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+	primerBitLibre := miSB.SbPrimerBitLibreArbolDirectorio
+
+	//guarda en un array todas las carptas por separado
+	nombresCarpetasComoArreglo := strings.Split(pathArch, "/")
+	nombresCarpetasComoArreglo[0] = "/"
+
+	//inicio de AVD
+	starAVD := miSB.SbApInicioArbolDirectorio
+
+	//nombre Archivo
+	nombreArchivo := nombresCarpetasComoArreglo[len(nombresCarpetasComoArreglo)-1]
+
+	fmt.Println(nombresCarpetasComoArreglo)
+
+	//array carpetas, nombre archivo, donde empieza a recorrer, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, struc a leer
+	recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
+}
+
+func recursiveMkfile(arrCarpetas []string, nombreArchivo string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
+	fmt.Println("arr: ", arrCarpetaDondeEmpezar)
+
+	//cuando ya este en la ultima parara, es mi if de parada
+	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
+		fmt.Println("uju ", len(arrCarpetas)-1)
+
+		//Abrimos
+		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+		defer file.Close()
+		if err != nil { //validar que no sea nulo.
+			log.Fatal(err)
+		}
+
+		var inicioLectura int64 = 0
+
+		if numStructLeer == 1 {
+			inicioLectura = starAVD
+		} else {
+			//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+			//resto 1, seria 2-1 = 1
+			op1 := numStructLeer - 1
+			//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+			op2 := op1 * int(tamStruct)
+			//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+			inicioLectura = starAVD + int64(op2) + 1
+		}
+
+		file.Seek(inicioLectura, 0)
+
+		//leemos struct actual
+		miAVD := ArbolVirtualDirectorio{}
+		data2 := leerBytesFdisk(file, int(tamStruct))
+
+		//Convierte la data en un buffer,necesario para decodificar binario
+		buffer2 := bytes.NewBuffer(data2)
+
+		//Decodificamos y guardamos en la variable m
+		err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+		if err != nil {
+			log.Fatal("binary.Read failed", err)
+		}
+
+		subDirectorios := miAVD.AvdArraySubDirectorios
+
+		//crear detalle directorio
+		if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
+			fmt.Println("crear DD en: ", arrCarpetas[arrCarpetaDondeEmpezar], " con apuntador: ", numStructLeer)
+		}
+
+		//empezara en 0, luego en 1
+		for i := arrCarpetaDondeEmpezar; i < len(arrCarpetas)-1; i++ {
+
+			banderaInsert := false
+
+			for x := 0; x < len(subDirectorios); x++ {
+
+				bandera := false
+
+				if subDirectorios[x] != 0 {
+
+					//numero de apuntador
+					numApuntador := subDirectorios[x]
+					namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
+					if namesIguales {
+						//existe carpeta
+						fmt.Println(arrCarpetaDondeEmpezar, " entrar en: ", arrCarpetas[arrCarpetaDondeEmpezar+1])
+
+						banderaInsert = recursiveMkfile(arrCarpetas, nombreArchivo, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
+						return true
+					}
+				}
+
+				if bandera {
+					return true
+				}
+
+				//cuando esten en la ultima posicion
+				if x == len(subDirectorios)-1 {
+					//si hay que crear apuntador indirecto
+					if miAVD.AvdApIndirecto != 0 {
+						//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
+						fmt.Println("entro en indirecto ")
+						structLeer := miAVD.AvdApIndirecto
+						banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
+						return true
+					}
+				}
+			}
+
+			if banderaInsert {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+//--------------------------------------------------------FIN MKFILE--------------------------------------------------------//
+
+//--------------------------------------------------------INICIO BITACORA--------------------------------------------------------//
+
+func bitacoraGuardarStruct(path string, starPart int64, tipoOperacion string, tipo int64, nombre string, contenido string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	inicioLog := miSB.SbApInicioBitacora
+
+	file.Seek(inicioLog, 0)
+
+	//cuanto voy a leer del archivo
+	numEstruct := miSB.SbTamanioEstructuraArbolDirectorio
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitacora := make([]LogBitacora, numEstruct)
+	tamarr := int(binary.Size(arrBitacora))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarr))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitacora)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	//recorremos array
+	for i := 0; i < len(arrBitacora); i++ {
+		structLog := arrBitacora[i]
+		op := structLog.LogTipoOperacion
+		//quiere decir que aun no hay nada guardado ahi
+		if op[0] == 0 {
+			newStruct := LogBitacora{}
+			copy(newStruct.LogTipoOperacion[:], tipoOperacion)
+			newStruct.LogTipo = tipo
+			copy(newStruct.LogNombre[:], nombre)
+			copy(newStruct.LogContenido[:], contenido)
+
+			t := time.Now()
+			fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+				t.Year(), t.Month(), t.Day(),
+				t.Hour(), t.Minute(), t.Second())
+
+			// Igualar cadenas a array de bytes (array de chars)
+			copy(newStruct.LogFecha[:], fecha)
+
+			//guardamos
+			arrBitacora[i] = newStruct
+			break
+		}
+	}
+
+	file.Seek(inicioLog, 0)
+	//guardamos ya actualizado
+	s1 := &arrBitacora
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+}
+
+//--------------------------------------------------------FIN BITACORA--------------------------------------------------------//
+
 //--------------------------------------------------------INICIO REP--------------------------------------------------------//
 
 func repComando(index int) {
@@ -5510,6 +5824,8 @@ func operacionRep(name string, path string, id string, ruta string) {
 			reporteBitmapBloques(pathDisco, starPart, path)
 		} else if strings.Compare(strings.ToLower(name), "tree_directorio") == 0 {
 			reporteGeneralDirectorio(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "bitacora") == 0 {
+			reporteBitacora(pathDisco, starPart, path)
 		}
 	} else {
 		fmt.Println("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
@@ -7078,7 +7394,7 @@ func retornarCadenaGeneralDirectorio(pathDisco string, starAVD int64, starPartic
 
 						//si no es el directorio raiz
 					} else {
-						cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + strconv.Itoa(int(miAVD.AvdApIndirecto)) + "\n"
+						cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + "\n"
 					}
 
 					cadenaRep += cadApuntador
@@ -7145,7 +7461,121 @@ func retornarNombreSinEspaciosNulos(arr [16]byte) string {
 	return nombre
 }
 
-//---------------------------------REPORTE DIRECTORIOS ----------------------------------//
+//---------------------------------FIN REPORTE DIRECTORIOS ----------------------------------//
+
+//---------------------------------REPORTE BITACORA ----------------------------------//
+
+func reporteBitacora(path string, starPart int64, pathGuardar string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	inicioLog := miSB.SbApInicioBitacora
+
+	file.Seek(inicioLog, 0)
+
+	//cuanto voy a leer del archivo
+	numEstruct := miSB.SbTamanioEstructuraArbolDirectorio
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitacora := make([]LogBitacora, numEstruct)
+	tamarr := int(binary.Size(arrBitacora))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarr))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitacora)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	cadRep := ""
+	//recorremos array
+	for i := 0; i < len(arrBitacora); i++ {
+		structLog := arrBitacora[i]
+		op := structLog.LogTipoOperacion
+		//quiere decir que hay contenido
+		if op[0] != 0 {
+			tipOp := bitaRetornarSinEspaciosNulos1(structLog.LogTipoOperacion)
+			tipo := structLog.LogTipo
+			nombre := bitaRetornarSinEspaciosNulos1(structLog.LogNombre)
+			contenido := bitaRetornarSinEspaciosNulos2(structLog.LogContenido)
+			fecha := bitaRetornarSinEspaciosNulos1(structLog.LogFecha)
+
+			cadRep += "Tipo Operacion: " + tipOp + "\n"
+			cadRep += "Tipo: " + strconv.Itoa(int(tipo)) + "\n"
+			cadRep += "Nombre: " + nombre + "\n"
+			cadRep += "Contenido: " + contenido + "\n"
+			cadRep += "Fecha: " + fecha + "\n"
+			cadRep += "\n"
+		}
+	}
+
+	createBIT(pathGuardar, cadRep)
+}
+
+func bitaRetornarSinEspaciosNulos1(arr [20]byte) string {
+	nombre := ""
+	for x := 0; x < 16; x++ {
+		if arr[x] != 0 { //los que sean nulos no los concatena
+			nombre += string(arr[x])
+		}
+	}
+	return nombre
+}
+
+func bitaRetornarSinEspaciosNulos2(arr [50]byte) string {
+	nombre := ""
+	for x := 0; x < 16; x++ {
+		if arr[x] != 0 { //los que sean nulos no los concatena
+			nombre += string(arr[x])
+		}
+	}
+	return nombre
+}
+
+func createBIT(path string, cadena string) {
+
+	file, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	// Write String to file
+	bytes2, err := file.WriteString(cadena)
+	if err != nil {
+		println(bytes2)
+		panic(err)
+	}
+}
+
+//---------------------------------FIN REPORTE BITACORA ----------------------------------//
 
 func crearDot(name string, cadena string) {
 	f := createFile(name + ".dot")
