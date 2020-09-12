@@ -52,6 +52,26 @@ func main() {
 	nombresCarpetasComoArreglo[0] = "/"
 	fmt.Println(nombresCarpetasComoArreglo)*/
 
+	/*cad := "abcdefghijklmnopqrstuvwxyabcdefghijklmnopqrstuvwxyabcdefghijklmnopqrstuvwxyabcdefghi"
+	fmt.Println(len(cad))
+
+	numB := 4
+
+	hdm := 0
+	hdm2 := 25
+	for i := 0; i < numB; i++ {
+		mandar := cad[hdm:hdm2]
+		fmt.Println(mandar)
+
+		if i == numB-2 {
+			hdm = hdm2
+			hdm2 = len(cad) - 1
+		} else {
+			hdm = hdm2
+			hdm2 += 25
+		}
+	}*/
+
 }
 
 //cuando analice texto de entrada se iran guardando aca los comandos
@@ -4875,25 +4895,27 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 						return true
 					} else {
 						//crear carpeta
-						for y := 0; y < len(subDirectorios); y++ {
-							if subDirectorios[y] == 0 {
-								fmt.Println("2guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
-								//actualizar apuntador del directorio actual
-								avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(y), primerBitLibre)
-								//crear directorio
-								avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar+1])
-								//actualizo bitmap del AVD
-								avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
-								//obtengo el nuevo bit libre
-								newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
-								//actualizo en el sb el nuevo bit libre del AVD
-								sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
-								//actualizo el numero de structuras del sb
-								sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
-								//guardar en bitacora
-								bitacoraGuardarStruct(pathDisco, starParticion, "mkdir", 1, arrCarpetas[arrCarpetaDondeEmpezar+1], "NAC")
-								bandera = true
-								return true
+						if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
+							for y := 0; y < len(subDirectorios); y++ {
+								if subDirectorios[y] == 0 {
+									fmt.Println("2guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
+									//actualizar apuntador del directorio actual
+									avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(y), primerBitLibre)
+									//crear directorio
+									avdCrearDirectorio(pathDisco, starAVD, primerBitLibre, tamStruct, arrCarpetas[arrCarpetaDondeEmpezar+1])
+									//actualizo bitmap del AVD
+									avdActualizarBitmap(pathDisco, starParticion, primerBitLibre)
+									//obtengo el nuevo bit libre
+									newBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+									//actualizo en el sb el nuevo bit libre del AVD
+									sbActualizarBitLibreAVD(pathDisco, starParticion, int64(newBitLibre))
+									//actualizo el numero de structuras del sb
+									sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
+									//guardar en bitacora
+									bitacoraGuardarStruct(pathDisco, starParticion, "mkdir", 1, arrCarpetas[arrCarpetaDondeEmpezar+1], "NAC")
+									bandera = true
+									return true
+								}
 							}
 						}
 					}
@@ -5534,15 +5556,14 @@ func operacionMkfile(id string, pathArch string, p bool, sizeArch int, cont stri
 	fmt.Println(nombresCarpetasComoArreglo)
 
 	//array carpetas, nombre archivo, donde empieza a recorrer, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, struc a leer
-	recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
+	recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, cont, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
 }
 
-func recursiveMkfile(arrCarpetas []string, nombreArchivo string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
+func recursiveMkfile(arrCarpetas []string, nombreArchivo string, contArchivo string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
 	fmt.Println("arr: ", arrCarpetaDondeEmpezar)
 
 	//cuando ya este en la ultima parara, es mi if de parada
 	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
-		fmt.Println("uju ", len(arrCarpetas)-1)
 
 		//Abrimos
 		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
@@ -5584,13 +5605,14 @@ func recursiveMkfile(arrCarpetas []string, nombreArchivo string, arrCarpetaDonde
 
 		//crear detalle directorio
 		if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
-			fmt.Println("crear DD en: ", arrCarpetas[arrCarpetaDondeEmpezar], " con apuntador: ", numStructLeer)
+			//fmt.Println("crear DD en: ", arrCarpetas[arrCarpetaDondeEmpezar], " con apuntador: ", numStructLeer)
+			irADetalleDirectorio(pathDisco, starParticion, starAVD, tamStruct, numStructLeer, nombreArchivo, contArchivo)
 		}
 
 		//empezara en 0, luego en 1
 		for i := arrCarpetaDondeEmpezar; i < len(arrCarpetas)-1; i++ {
 
-			banderaInsert := false
+			banderaBusc := false
 
 			for x := 0; x < len(subDirectorios); x++ {
 
@@ -5605,7 +5627,7 @@ func recursiveMkfile(arrCarpetas []string, nombreArchivo string, arrCarpetaDonde
 						//existe carpeta
 						fmt.Println(arrCarpetaDondeEmpezar, " entrar en: ", arrCarpetas[arrCarpetaDondeEmpezar+1])
 
-						banderaInsert = recursiveMkfile(arrCarpetas, nombreArchivo, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
+						banderaBusc = recursiveMkfile(arrCarpetas, nombreArchivo, contArchivo, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
 						return true
 					}
 				}
@@ -5621,18 +5643,1090 @@ func recursiveMkfile(arrCarpetas []string, nombreArchivo string, arrCarpetaDonde
 						//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
 						fmt.Println("entro en indirecto ")
 						structLeer := miAVD.AvdApIndirecto
-						banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
+						banderaBusc = recursiveMkfile(arrCarpetas, nombreArchivo, contArchivo, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
 						return true
 					}
 				}
 			}
 
-			if banderaInsert {
+			if banderaBusc {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+func irADetalleDirectorio(pathDisco string, starPart int64, starAVD int64, tamStruct int64, numStructLeer int, nombreArchivo string, contArchivo string) {
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	primerBitLibreDD := miSB.SbPrimerBitLibreDetalleDirectorio
+	starDD := miSB.SbApInicioDetalleDirectorio
+	tamStructDD := miSB.SbTamanioEstructuraDetalleDirectorio
+
+	starInodo := miSB.SbApInicioInodos
+	tamStructInodo := miSB.SbTamanioEstructuraInodo
+	primerBitLibreInodo := miSB.SbPrimerBitLibreInodos
+
+	starBloque := miSB.SbApInicioBloques
+	tamStructBloque := miSB.SbApInicioBloques
+
+	//empiezo a leer el AVD
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct donde vayamos a guardar el detalle directorio o donde ya este
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//apuntador DD
+	apDD := miAVD.AvdApDetalleDirectorio
+
+	//si aun no hay DD
+	if apDD == 0 {
+		//actualizamos apuntadorDD del directorio
+		ddActualizarApuntadorDDDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, primerBitLibreDD)
+		//insertamos struct DD
+		guardarDetalleDirectorio(pathDisco, starDD, tamStructDD, primerBitLibreDD, nombreArchivo, primerBitLibreInodo)
+		//actualizamos bitmap DD
+		ddActualizarBitmap(pathDisco, starPart, primerBitLibreDD)
+		//obtengo el nuevo bit libre
+		newBitLibre := ddRetornarPrimerBitLibre(pathDisco, starPart)
+		//actualizamos primer bit libre de DD en sb
+		sbActualizarBitLibreDD(pathDisco, starPart, int64(newBitLibre))
+		//actualizamos, aumentamos 1 en cantidad estructuras y restamos una de las libres del sb
+		sbAumentarRestarCantidadStructDD(pathDisco, starPart)
+
+		//guardamos inodo, en inodo guardara bloques
+		logicaInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, primerBitLibreInodo, starBloque, tamStructBloque)
+
+		//si ya existe DD
+	} else {
+		//insertamos struct DD
+		guardarDetalleDirectorio2(pathDisco, starDD, tamStructDD, apDD, nombreArchivo, primerBitLibreInodo)
+		//guardamos inodo, en inodo guardara bloques
+		logicaInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, primerBitLibreInodo, starBloque, tamStructBloque)
+	}
+}
+
+func guardarDetalleDirectorio(pathDisco string, starDD int64, tamStruct int64, bitLibre int64, nombreArchivo string, bitLibreInodo int64) {
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+	//resto 1, seria 2-1 = 1
+	op1 := bitLibre - 1
+	//multiplico el valor por el tamanio de struct, seraia 1*150
+	op2 := op1 * tamStruct
+	//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+	posDD := starDD + int64(op2) + 1
+
+	newStructDD := DetalleDirectorio{}
+	arrDD := newStructDD.DdArrayArchivosTXT
+
+	pos := 0
+	for i := 0; i < len(arrDD); i++ {
+		strucd := arrDD[i]
+		//cuando encuentre el vacio
+		if strucd.DdNombreArchivoTXT[0] == 0 {
+			pos = i
+			break
+		}
+	}
+
+	//guardo nombre
+	copy(arrDD[pos].DdNombreArchivoTXT[:], nombreArchivo)
+
+	//guardamos apuntador inodo
+	arrDD[pos].DdApInodo = bitLibreInodo
+
+	//actualizamos y guardamos
+	newStructDD.DdArrayArchivosTXT = arrDD
+
+	//me posiciono al inicio donde voy a empezar a guardar
+	file.Seek(posDD, 0)
+
+	//guardamos ya actualizado
+	s1 := &newStructDD
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo)
+}
+
+func guardarDetalleDirectorio2(pathDisco string, starDD int64, tamStruct int64, bitLibre int64, nombreArchivo string, bitLibreInodo int64) {
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+	//resto 1, seria 2-1 = 1
+	op1 := bitLibre - 1
+	//multiplico el valor por el tamanio de struct, seraia 1*150
+	op2 := op1 * tamStruct
+	//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+	posDD := starDD + int64(op2) + 1
+
+	//Declaramos variable
+
+	file.Seek(posDD, 0)
+
+	newStructDD := DetalleDirectorio{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer, binary.BigEndian, &newStructDD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	arrDD := newStructDD.DdArrayArchivosTXT
+
+	pos := 0
+	for i := 0; i < len(arrDD); i++ {
+		strucd := arrDD[i]
+		//cuando encuentre el vacio
+		if strucd.DdNombreArchivoTXT[0] == 0 {
+			pos = i
+			break
+		}
+	}
+
+	//guardo nombre
+	copy(arrDD[pos].DdNombreArchivoTXT[:], nombreArchivo)
+
+	//actualizamos y guardamos
+	newStructDD.DdArrayArchivosTXT = arrDD
+
+	//guardamos apuntador inodo
+	arrDD[pos].DdApInodo = bitLibreInodo
+
+	//me posiciono al inicio donde voy a empezar a guardar
+	file.Seek(posDD, 0)
+
+	//guardamos ya actualizado
+	s1 := &newStructDD
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo)
+}
+
+func logicaInodo(pathDisco string, starPart int64, starInodo int64, tamStructInodo int64, contArchivo string, bitLibreInodo int64, starBloques int64, tamStructBloque int64) {
+
+	tamanioI := len(contArchivo)
+	numBloques := 0
+
+	//resultado con decimales
+	aja := float64(len(contArchivo)) / float64(25)
+
+	//resultado como entero
+	aja2 := len(contArchivo) / 25
+
+	aja3 := float64(aja) - float64(aja2)
+
+	if aja3 > float64(0) {
+		aja4 := aja2 + 1
+		numBloques = aja4
+	} else {
+		numBloques = aja2
+	}
+
+	guardarInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, bitLibreInodo, int64(tamanioI), int64(numBloques), starBloques, tamStructBloque)
+
+}
+
+func guardarInodo(pathDisco string, starPart int64, starInodo int64, tamStructInodo int64, contArchivo string, bitLibreInodo int64, tamanioI int64, numBloques int64, starBloques int64, tamStructBloque int64) {
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+	//resto 1, seria 2-1 = 1
+	op1 := bitLibreInodo - 1
+	//multiplico el valor por el tamanio de struct, seraia 1*150
+	op2 := op1 * tamStructInodo
+	//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+	posI := starInodo + int64(op2) + 1
+
+	newStructInodo := Inodos{}
+	newStructInodo.ITamanioArchivoTXT = tamanioI
+	newStructInodo.INumeroBloquesAsignados = numBloques
+
+	//accedo array de bloques
+	arrBloques := newStructInodo.IApArrayBloques
+
+	if numBloques > 4 {
+		numBloques = 4
+	}
+
+	hdm := 0
+	hdm2 := 25
+	//recorrera el numero de structuras
+	for i := 0; i < int(numBloques); i++ {
+		//obtengo el primer bit libre de bloque
+		bitLibreBloque := bloqueRetornarPrimerBitLibre(pathDisco, starPart)
+		//asigno apuntador a bloque en ap inodo
+		arrBloques[0] = int64(bitLibreBloque)
+
+		//contenido a mandar
+		mandar := contArchivo[hdm:hdm2]
+
+		if i == int(numBloques)-2 {
+			hdm = hdm2
+			hdm2 = len(contArchivo) - 1
+		} else {
+			hdm = hdm2
+			hdm2 += 25
+		}
+
+		//inserto struct bloque
+		guardarBloque(pathDisco, starBloques, tamStructBloque, mandar, int64(bitLibreBloque))
+		//actualizamos bitmap Bloque
+		bloqueActualizarBitmap(pathDisco, starPart, int64(bitLibreBloque))
+		//obtengo el nuevo bit libre
+		newBitLibre := bloqueRetornarPrimerBitLibre(pathDisco, starPart)
+		//actualizamos primer bit libre de bloque en sb
+		sbActualizarBitLibreBloque(pathDisco, int64(starPart), int64(newBitLibre))
+		//actualizamos, aumentamos 1 en cantidad estructuras y restamos una de las libres del sb
+		sbAumentarRestarCantidadStructBloque(pathDisco, starPart)
+	}
+
+	newStructInodo.IApArrayBloques = arrBloques
+
+	file.Seek(posI, 0)
+
+	//guardamos ya actualizado
+	s1 := &newStructInodo
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	//actualizamos bitmap inodo
+	inodoActualizarBitmap(pathDisco, starPart, bitLibreInodo)
+	//obtengo el nuevo bit libre
+	newBitLibreI := inodoRetornarPrimerBitLibre(pathDisco, starPart)
+	//actualizamos primer bit libre de inodo en sb
+	sbActualizarBitLibreInodo(pathDisco, starPart, int64(newBitLibreI))
+	//actualizamos, aumentamos 1 en cantidad estructuras y restamos una de las libres del sb
+	sbAumentarRestarCantidadStructInodo(pathDisco, starPart)
+
+	fmt.Println("crear Inodo en posicion Disco: ", bitLibreInodo)
+}
+
+func guardarBloque(pathDisco string, starBloques int64, tamStructBloque int64, cont string, bitlibreBloque int64) {
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+	//resto 1, seria 2-1 = 1
+	op1 := bitlibreBloque - 1
+	//multiplico el valor por el tamanio de struct, seraia 1*150
+	op2 := op1 * tamStructBloque
+	//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+	posI := starBloques + int64(op2) + 1
+
+	newStruct := bloque{}
+	copy(newStruct.bInformacionArchivo[:], cont)
+
+	//me posiciono al inicio donde voy a empezar a guardar
+	file.Seek(posI, 0)
+
+	//guardamos ya actualizado
+	s1 := &newStruct
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	fmt.Println("crear Bloque en posicion Disco: ", bitlibreBloque, " con contenido: ", cont)
+}
+
+//actualiza el bitmap del DD
+func ddActualizarBitmap(path string, starPart int64, bitAInsertar int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMap := miSB.SbApInicioBitmapDetalleDirectorio
+
+	//me posiciono en el archivo
+	file.Seek(starBitMap, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadEstructurasDetalleDirectorio
+	sbcl := miSB.SbCantidadEstructurasDetalleDirectorioLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmap := make([]int8, tamanioBitmap)
+	tamarrBitmapAVD := int(binary.Size(arrBitmap))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmapAVD))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmap)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	//bitAInsertar-1 porque nos da la posicion exacta, pero en el array es uno menos
+	arrBitmap[bitAInsertar-1] = 1
+
+	file.Seek(starBitMap, 0)
+
+	s2 := &arrBitmap
+	//Escribimos
+	var binario2 bytes.Buffer
+	binary.Write(&binario2, binary.BigEndian, s2)
+	escribirBytes(file, binario2.Bytes())
+}
+
+//devuelve el primer bit libre del DD
+func ddRetornarPrimerBitLibre(path string, starPart int64) int {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMap := miSB.SbApInicioBitmapDetalleDirectorio
+
+	//me posiciono en el archivo
+	file.Seek(starBitMap, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadEstructurasDetalleDirectorio
+	sbcl := miSB.SbCantidadEstructurasDetalleDirectorioLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmap := make([]int8, tamanioBitmap)
+	tamarrBitmap := int(binary.Size(arrBitmap))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmap))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmap)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	for i := 0; i < len(arrBitmap); i++ {
+		if arrBitmap[i] == 0 {
+			ret := i + 1
+			return ret
+		}
+	}
+
+	return -1
+
+}
+
+//actualiza o inserta el apuntador DD del AVD
+func ddActualizarApuntadorDDDeDirectorioActual(pathDisco string, starAVD int64, numEstruct int64, tamStruct int64, bit int64) {
+
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numEstruct == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numEstruct - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	miAVD := ArbolVirtualDirectorio{}
+
+	data := leerBytesFdisk(file, int(tamStruct))
+	buffer := bytes.NewBuffer(data)
+
+	err = binary.Read(buffer, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	miAVD.AvdApDetalleDirectorio = bit
+
+	//guardo
+	file.Seek(inicioLectura, 0)
+
+	s1 := &miAVD
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+	println("Apuntador DD: ", bit)
+
+}
+
+//actualiza al a un nuevo bit libre del AVD
+func sbActualizarBitLibreDD(path string, starPart int64, newBitLibre int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	miSB.SbPrimerBitLibreDetalleDirectorio = newBitLibre
+
+	file.Seek(starPart, 0)
+
+	//guardamos sb ya actualizado
+	s1 := &miSB
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+}
+
+//aumenta uno en la cantidad de struct y resta uno de los libres
+func sbAumentarRestarCantidadStructDD(path string, starPart int64) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//aumentar una a la cantidad de struct
+	numEstruct := miSB.SbCantidadEstructurasDetalleDirectorio
+	op1 := numEstruct + 1
+	miSB.SbCantidadEstructurasDetalleDirectorio = op1
+
+	//restar una a la cantidad de struct
+	numEstructL := miSB.SbCantidadEstructurasDetalleDirectorioLibres
+	op2 := numEstructL - 1
+	miSB.SbCantidadEstructurasDetalleDirectorioLibres = op2
+
+	file.Seek(starPart, 0)
+	//guardamos sb ya actualizado
+	s1 := &miSB
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+}
+
+//actualiza el bitmap de inodo
+func inodoActualizarBitmap(path string, starPart int64, bitAInsertar int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMap := miSB.SbApInicioBitmapInodos
+
+	//me posiciono en el archivo
+	file.Seek(starBitMap, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadInodos
+	sbcl := miSB.SbCantidadInodosLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmap := make([]int8, tamanioBitmap)
+	tamarrBitmapAVD := int(binary.Size(arrBitmap))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmapAVD))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmap)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	//bitAInsertar-1 porque nos da la posicion exacta, pero en el array es uno menos
+	arrBitmap[bitAInsertar-1] = 1
+
+	file.Seek(starBitMap, 0)
+
+	s2 := &arrBitmap
+	//Escribimos
+	var binario2 bytes.Buffer
+	binary.Write(&binario2, binary.BigEndian, s2)
+	escribirBytes(file, binario2.Bytes())
+}
+
+//devuelve el primer bit libre de inodos
+func inodoRetornarPrimerBitLibre(path string, starPart int64) int {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMap := miSB.SbApInicioBitmapInodos
+
+	//me posiciono en el archivo
+	file.Seek(starBitMap, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadInodos
+	sbcl := miSB.SbCantidadInodosLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmap := make([]int8, tamanioBitmap)
+	tamarrBitmap := int(binary.Size(arrBitmap))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmap))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmap)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	for i := 0; i < len(arrBitmap); i++ {
+		if arrBitmap[i] == 0 {
+			ret := i + 1
+			return ret
+		}
+	}
+
+	return -1
+
+}
+
+//actualiza al a un nuevo bit libre del AVD
+func sbActualizarBitLibreInodo(path string, starPart int64, newBitLibre int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	miSB.SbPrimerBitLibreInodos = newBitLibre
+
+	file.Seek(starPart, 0)
+
+	//guardamos sb ya actualizado
+	s1 := &miSB
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+}
+
+//aumenta uno en la cantidad de struct y resta uno de los libres
+func sbAumentarRestarCantidadStructInodo(path string, starPart int64) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//aumentar una a la cantidad de struct
+	numEstruct := miSB.SbCantidadInodos
+	op1 := numEstruct + 1
+	miSB.SbCantidadInodos = op1
+
+	//restar una a la cantidad de struct
+	numEstructL := miSB.SbCantidadInodosLibres
+	op2 := numEstructL - 1
+	miSB.SbCantidadInodosLibres = op2
+
+	file.Seek(starPart, 0)
+	//guardamos sb ya actualizado
+	s1 := &miSB
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+}
+
+//actualiza el bitmap de bloques
+func bloqueActualizarBitmap(path string, starPart int64, bitAInsertar int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMap := miSB.SbApInicioBitmapBloques
+
+	//me posiciono en el archivo
+	file.Seek(starBitMap, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadBloques
+	sbcl := miSB.SbCantidadBloquesLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmap := make([]int8, tamanioBitmap)
+	tamarrBitmap := int(binary.Size(arrBitmap))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmap))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmap)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	//bitAInsertar-1 porque nos da la posicion exacta, pero en el array es uno menos
+	arrBitmap[bitAInsertar-1] = 1
+
+	file.Seek(starBitMap, 0)
+
+	s2 := &arrBitmap
+	//Escribimos
+	var binario2 bytes.Buffer
+	binary.Write(&binario2, binary.BigEndian, s2)
+	escribirBytes(file, binario2.Bytes())
+}
+
+//devuelve el primer bit libre de inodos
+func bloqueRetornarPrimerBitLibre(path string, starPart int64) int {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//inicio de bitmap
+	starBitMap := miSB.SbApInicioBitmapBloques
+
+	//me posiciono en el archivo
+	file.Seek(starBitMap, 0)
+
+	//cuanto voy a leer del archivo
+	sbc := miSB.SbCantidadBloques
+	sbcl := miSB.SbCantidadBloquesLibres
+	tamanioBitmap := sbc + sbcl
+
+	//creo array para obtener el arreglo de bitmap del archivo
+	arrBitmap := make([]int8, tamanioBitmap)
+	tamarrBitmap := int(binary.Size(arrBitmap))
+
+	//empiezo a leer
+	data2 := leerBytesFdisk(file, int(tamarrBitmap))
+
+	buffer2 := bytes.NewBuffer(data2)
+
+	err = binary.Read(buffer2, binary.BigEndian, &arrBitmap)
+	if err != nil {
+		log.Fatal("binary2 Read failed ", err)
+	}
+
+	for i := 0; i < len(arrBitmap); i++ {
+		if arrBitmap[i] == 0 {
+			ret := i + 1
+			return ret
+		}
+	}
+
+	return -1
+
+}
+
+//actualiza al a un nuevo bit libre del AVD
+func sbActualizarBitLibreBloque(path string, starPart int64, newBitLibre int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	miSB.SbPrimerBitLibreBloques = newBitLibre
+
+	file.Seek(starPart, 0)
+
+	//guardamos sb ya actualizado
+	s1 := &miSB
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+}
+
+//aumenta uno en la cantidad de struct y resta uno de los libres
+func sbAumentarRestarCantidadStructBloque(path string, starPart int64) {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//aumentar una a la cantidad de struct
+	numEstruct := miSB.SbCantidadBloques
+	op1 := numEstruct + 1
+	miSB.SbCantidadBloques = op1
+
+	//restar una a la cantidad de struct
+	numEstructL := miSB.SbCantidadBloquesLibres
+	op2 := numEstructL - 1
+	miSB.SbCantidadBloquesLibres = op2
+
+	file.Seek(starPart, 0)
+	//guardamos sb ya actualizado
+	s1 := &miSB
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
 }
 
 //--------------------------------------------------------FIN MKFILE--------------------------------------------------------//
