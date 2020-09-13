@@ -192,7 +192,7 @@ type Inodos struct {
 }
 
 type bloque struct {
-	bInformacionArchivo [25]byte
+	BInformacionArchivo [25]byte
 }
 
 // LogBitacora ,
@@ -4533,7 +4533,8 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 
 	copy(ddarr.DdFechaModificacion[:], fechadd)
 
-	dd.DdArrayArchivosTXT[0] = ddarr //para que guarde cambios
+	estructuraDentroDD[0] = ddarr
+	dd.DdArrayArchivosTXT = estructuraDentroDD //para que guarde cambios
 
 	//PARA BITMAP INODOS
 	arrBitmapInodo := make([]int8, bytesBitmapInodo)
@@ -4565,10 +4566,10 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 
 	//PARA BLOQUES
 	bloque1 := bloque{}
-	copy(bloque1.bInformacionArchivo[:], archivoTXTinicial[0:24])
+	copy(bloque1.BInformacionArchivo[:], archivoTXTinicial[0:24])
 
 	bloque2 := bloque{}
-	copy(bloque2.bInformacionArchivo[:], archivoTXTinicial[25:len(archivoTXTinicial)])
+	copy(bloque2.BInformacionArchivo[:], archivoTXTinicial[25:len(archivoTXTinicial)])
 
 	//GUARDANDO BLOQUE SUPER BOOT
 	file.Seek(inicioSuperBoot, 0)
@@ -4643,8 +4644,8 @@ func agregarEstructurasEnParcicion(path string, nameParticion string, starPartic
 	escribirBytes(file, binario9.Bytes())
 
 	//GUARDANDO BLOQUE2
-	tamBloque1 := int(unsafe.Sizeof(bloque1))
-	inicioBloque2 := inicioBloques + int64(tamBloque1) + 1
+	//tamBloque1 := int(unsafe.Sizeof(bloque1))
+	inicioBloque2 := inicioBloques + int64(unsafe.Sizeof(bloque{})) + 1
 	file.Seek(inicioBloque2, 0)
 	s10 := &bloque2
 	//Escribimos
@@ -5694,7 +5695,7 @@ func irADetalleDirectorio(pathDisco string, starPart int64, starAVD int64, tamSt
 	primerBitLibreInodo := miSB.SbPrimerBitLibreInodos
 
 	starBloque := miSB.SbApInicioBloques
-	tamStructBloque := miSB.SbApInicioBloques
+	tamStructBloque := miSB.SbTamanioEstructuraBloques
 
 	//empiezo a leer el AVD
 	var inicioLectura int64 = 0
@@ -5850,15 +5851,14 @@ func guardarDetalleDirectorio2(pathDisco string, starDD int64, tamStruct int64, 
 			break
 		}
 	}
-
 	//guardo nombre
 	copy(arrDD[pos].DdNombreArchivoTXT[:], nombreArchivo)
 
-	//actualizamos y guardamos
-	newStructDD.DdArrayArchivosTXT = arrDD
-
 	//guardamos apuntador inodo
 	arrDD[pos].DdApInodo = bitLibreInodo
+
+	//actualizamos y guardamos
+	newStructDD.DdArrayArchivosTXT = arrDD
 
 	//me posiciono al inicio donde voy a empezar a guardar
 	file.Seek(posDD, 0)
@@ -5870,7 +5870,7 @@ func guardarDetalleDirectorio2(pathDisco string, starDD int64, tamStruct int64, 
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo)
+	fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo, " y apInodo: ", bitLibreInodo)
 }
 
 func logicaInodo(pathDisco string, starPart int64, starInodo int64, tamStructInodo int64, contArchivo string, bitLibreInodo int64, starBloques int64, tamStructBloque int64) {
@@ -5884,6 +5884,7 @@ func logicaInodo(pathDisco string, starPart int64, starInodo int64, tamStructIno
 	//resultado como entero
 	aja2 := len(contArchivo) / 25
 
+	//resta para ver si me quedan decimales
 	aja3 := float64(aja) - float64(aja2)
 
 	if aja3 > float64(0) {
@@ -5893,6 +5894,7 @@ func logicaInodo(pathDisco string, starPart int64, starInodo int64, tamStructIno
 		numBloques = aja2
 	}
 
+	fmt.Println("->>>>>>>>>>>>>>>>.", numBloques)
 	guardarInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, bitLibreInodo, int64(tamanioI), int64(numBloques), starBloques, tamStructBloque)
 
 }
@@ -5930,7 +5932,11 @@ func guardarInodo(pathDisco string, starPart int64, starInodo int64, tamStructIn
 		//obtengo el primer bit libre de bloque
 		bitLibreBloque := bloqueRetornarPrimerBitLibre(pathDisco, starPart)
 		//asigno apuntador a bloque en ap inodo
-		arrBloques[0] = int64(bitLibreBloque)
+		arrBloques[i] = int64(bitLibreBloque)
+
+		if len(contArchivo) < 25 {
+			hdm2 = len(contArchivo)
+		}
 
 		//contenido a mandar
 		mandar := contArchivo[hdm:hdm2]
@@ -5985,16 +5991,21 @@ func guardarBloque(pathDisco string, starBloques int64, tamStructBloque int64, c
 		log.Fatal(err)
 	}
 
+	var posI int64 = 0
 	//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
 	//resto 1, seria 2-1 = 1
-	op1 := bitlibreBloque - 1
-	//multiplico el valor por el tamanio de struct, seraia 1*150
-	op2 := op1 * tamStructBloque
-	//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
-	posI := starBloques + int64(op2) + 1
+	if bitlibreBloque == 1 {
+		posI = starBloques
+	} else {
+		op1 := bitlibreBloque - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStructBloque
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posI = starBloques + int64(op2) + 1
+	}
 
 	newStruct := bloque{}
-	copy(newStruct.bInformacionArchivo[:], cont)
+	copy(newStruct.BInformacionArchivo[:], cont)
 
 	//me posiciono al inicio donde voy a empezar a guardar
 	file.Seek(posI, 0)
@@ -6920,6 +6931,8 @@ func operacionRep(name string, path string, id string, ruta string) {
 			reporteGeneralDirectorio(pathDisco, starPart, path)
 		} else if strings.Compare(strings.ToLower(name), "bitacora") == 0 {
 			reporteBitacora(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "tree_complete") == 0 {
+			reporteSistemaCompleto(pathDisco, starPart, path)
 		}
 	} else {
 		fmt.Println("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
@@ -8556,6 +8569,500 @@ func retornarNombreSinEspaciosNulos(arr [16]byte) string {
 }
 
 //---------------------------------FIN REPORTE DIRECTORIOS ----------------------------------//
+
+//---------------------------------INICIO REPORTE SISTEMA COMPLETO ----------------------------------//
+
+func reporteSistemaCompleto(path string, starPart int64, pathGuardar string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+	starAVD := miSB.SbApInicioArbolDirectorio
+
+	cadenaRep := ""
+
+	cuerpoCad := retornarCadenaSistemaCompleto(path, starAVD, starPart, tamStructAVD, 1, cadenaRep)
+
+	graph := "digraph {\n\n"
+	graph += cuerpoCad
+	graph += "}"
+
+	crearDot(pathGuardar, graph)
+	crearImg(pathGuardar)
+	//fmt.Println(graph)
+
+}
+
+func retornarCadenaSistemaCompleto(pathDisco string, starAVD int64, starParticion int64, tamStruct int64, numStructLeer int, cadenaRep string) string {
+
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct actual
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	subDirectorios := miAVD.AvdArraySubDirectorios
+
+	//para usar en DD
+	nombreTabla := ""
+
+	//para crear tabla, se crea la tabla o estructura del directorio, para luego hacer los enlaces
+	nombreDirectorio := retornarNombreSinEspaciosNulos(miAVD.AvdNombreDirectorio)
+
+	textTabla := ""
+	if strings.Compare(nombreDirectorio, "/") == 0 {
+		textTabla += "raiz" + strconv.Itoa(int(numStructLeer)) + " [ \n"
+		nombreTabla = "raiz" + strconv.Itoa(int(numStructLeer))
+	} else {
+		textTabla += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + " [\n"
+		nombreTabla = nombreDirectorio + strconv.Itoa(int(numStructLeer))
+	}
+	textTabla += "shape=plaintext\n"
+	textTabla += "label=<\n"
+	textTabla += "<table border='1' cellborder='1'>\n"
+	textTabla += "<tr><td colspan=\"8\">" + nombreDirectorio + "</td></tr>\n"
+	textTabla += "<tr><td port='ap0'></td><td port='ap1'></td><td port='ap2'></td><td port='ap3'></td><td port='ap4'></td><td port='ap5'></td><td bgcolor='blue' port='dd'></td><td bgcolor='green' port='apInd'></td></tr>\n"
+	textTabla += "</table>\n"
+	textTabla += ">];\n"
+
+	cadenaRep += textTabla
+
+	//si tiene apuntador indirecto
+	if miAVD.AvdApDetalleDirectorio != 0 {
+		textDD := ""
+
+		//obtengo el DD
+		miDD := retornarDD(pathDisco, starParticion, miAVD.AvdApDetalleDirectorio)
+
+		//accedo al array de DD
+		arrDD := miDD.DdArrayArchivosTXT
+
+		//concateno apuntador, ej: raiz1:dd -> dd2
+		textDD += nombreTabla + ":dd -> dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + "\n"
+
+		//para encabezo de tabla DD
+		textDD += "dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + " [\n"
+		textDD += "shape=plaintext\n"
+		textDD += "label=<\n"
+		textDD += "<table color='blue' cellspacing='0'>\n"
+		textDD += "<tr><td> DD </td></tr>\n"
+
+		//for para los nombre de archivos que tenga el DD (crea tabla DD con nombres de archivos)
+		for i := 0; i < len(arrDD); i++ {
+			temp := arrDD[i]
+			//hay un nombre de archivo
+			if temp.DdNombreArchivoTXT[0] != 0 {
+				nombre := retornarNombreSinEspaciosNulos(temp.DdNombreArchivoTXT)
+				textDD += "<tr><td port='ap" + strconv.Itoa(int(i)) + "'>" + nombre + "</td></tr>\n"
+				//fmt.Println("AP INIDO---> ", temp.DdApInodo)
+			} else {
+				textDD += "<tr><td port='ap" + strconv.Itoa(int(i)) + "'></td></tr>\n"
+			}
+
+		}
+
+		textDD += "<tr><td port='apInd' bgcolor='green'></td></tr>\n"
+		textDD += "</table>\n"
+		textDD += ">];\n"
+
+		//PARA INODO
+		for i := 0; i < len(arrDD); i++ {
+			temp := arrDD[i]
+			//hay un nombre de archivo
+			if temp.DdNombreArchivoTXT[0] != 0 {
+
+				numInodo := temp.DdApInodo
+				miInodo := retornarInodo(pathDisco, starParticion, numInodo)
+				arrB := miInodo.IApArrayBloques
+
+				//encabezado INODO
+				//para encabezo de tabla DD
+				textDD += "inodo" + strconv.Itoa(int(numInodo)) + " [\n"
+				textDD += "shape=plaintext\n"
+				textDD += "label=<\n"
+				textDD += "<table color='red' cellspacing='0'>\n"
+				textDD += "<tr><td colspan=\"2\"> INODO </td></tr>\n"
+
+				textDD += "<tr><td>Tamanio</td><td>" + strconv.Itoa(int(miInodo.ITamanioArchivoTXT)) + "</td></tr>"
+				textDD += "<tr><td>Bloques</td><td>" + strconv.Itoa(int(miInodo.INumeroBloquesAsignados)) + "</td></tr>"
+
+				for j := 0; j < len(arrB); j++ {
+					textDD += "<tr><td colspan=\"2\" port='ap" + strconv.Itoa(int(j)) + "'>ap" + strconv.Itoa(int(j)) + "</td></tr>"
+				}
+
+				textDD += "<tr><td colspan=\"2\" bgcolor='green' port='apInd'></td></tr>\n"
+				textDD += "</table>\n"
+				textDD += ">];\n"
+
+				//enlazamos apuntador, eje: dd2:ap0 -> inodo2
+				textDD += "dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + ":ap" + strconv.Itoa(int(i)) + " -> inodo" + strconv.Itoa(int(numInodo)) + " \n"
+			}
+		}
+
+		//PARA BLOQUES
+		for i := 0; i < len(arrDD); i++ {
+			temp := arrDD[i]
+			//hay un nombre de archivo
+			if temp.DdNombreArchivoTXT[0] != 0 {
+				numInodo := temp.DdApInodo
+				miInodo := retornarInodo(pathDisco, starParticion, numInodo)
+				arrB := miInodo.IApArrayBloques
+
+				//recorro arr bloques
+				for j := 0; j < len(arrB); j++ {
+					if arrB[j] != 0 {
+						numBloque := arrB[j]
+						miBloque := retornarBloque(pathDisco, starParticion, numBloque)
+						contenidoB := retornarNombreSinEspaciosNulosB(miBloque.BInformacionArchivo)
+
+						textDD += "bloque" + strconv.Itoa(int(numBloque)) + " [\n"
+						textDD += "shape=plaintext\n"
+						textDD += "label=<\n"
+						textDD += "<table color='cyan' cellspacing='0'>\n"
+						textDD += "<tr><td>" + contenidoB + "</td></tr>\n"
+						textDD += "</table>\n"
+						textDD += ">];"
+
+						//enlazamos apuntador, eje: inodo2:ap0 -> bloque3
+						textDD += "inodo" + strconv.Itoa(int(numInodo)) + ":ap" + strconv.Itoa(int(j)) + " -> bloque" + strconv.Itoa(int(numBloque)) + "\n"
+					}
+				}
+
+			}
+		}
+
+		cadenaRep += textDD
+	}
+
+	for x := 0; x < len(subDirectorios); x++ {
+
+		if subDirectorios[x] != 0 {
+
+			//numero de apuntador
+			numApuntador := subDirectorios[x]
+
+			//obtengo el nombre hacia donde apunta mi directorio actual
+			nombreSig := retornarNombreHaciaDondeApunta(pathDisco, starAVD, starParticion, tamStruct, int(numApuntador))
+			cadApuntador := ""
+			//si el directorio es la raiz
+			if strings.Compare(nombreDirectorio, "/") == 0 {
+				cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":ap" + strconv.Itoa(int(x)) + " -> " + nombreSig + "\n"
+
+				//si no es raiz
+			} else {
+				cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":ap" + strconv.Itoa(int(x)) + " -> " + nombreSig + "\n"
+			}
+
+			cadenaRep += cadApuntador
+
+			cadenaRep += retornarCadenaSistemaCompleto(pathDisco, starAVD, starParticion, tamStruct, int(numApuntador), "")
+		}
+
+		//cuando esten en la ultima posicion
+		if x == len(subDirectorios)-1 {
+			//verifica que esten llenos
+			if subDirectorioEstaLleno(subDirectorios) {
+				//si tiene apuntador indirecto
+				if miAVD.AvdApIndirecto != 0 {
+
+					//obtengo el nombre hacia donde apunta mi directorio actual
+					nombreSig := retornarNombreHaciaDondeApunta(pathDisco, starAVD, starParticion, tamStruct, int(miAVD.AvdApIndirecto))
+					cadApuntador := ""
+
+					//si el directorio es la raiz
+					if strings.Compare(nombreDirectorio, "/") == 0 {
+						//si el directorio hacia donde apunta es la raiz
+						//.constains porque devuelve el nombre con el apuntador, ejemplo /3
+						if strings.Contains(nombreSig, "/") {
+							cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + "raiz" + strconv.Itoa(int(miAVD.AvdApIndirecto)) + "\n"
+
+							//si el directorio hacia donde apunta no es la raiz
+						} else {
+							cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + "\n"
+						}
+
+						//si no es el directorio raiz
+					} else {
+						cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + "\n"
+					}
+
+					cadenaRep += cadApuntador
+
+					cadenaRep += retornarCadenaSistemaCompleto(pathDisco, starAVD, starParticion, tamStruct, int(miAVD.AvdApIndirecto), "")
+				}
+			}
+		}
+	}
+	return cadenaRep
+}
+
+func retornarDD(pathDisco string, starPart int64, bit int64) DetalleDirectorio {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStruct := miSB.SbTamanioEstructuraDetalleDirectorio
+	starDD := miSB.SbApInicioDetalleDirectorio
+
+	//leemos DD
+	var posDD int64 = 0
+	if bit == 1 {
+		posDD = starDD
+	} else {
+		//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := bit - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posDD = starDD + int64(op2) + 1
+
+	}
+
+	file.Seek(posDD, 0)
+
+	newStructDD := DetalleDirectorio{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer2, binary.BigEndian, &newStructDD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//ya leido retornamos
+
+	return newStructDD
+}
+
+func retornarInodo(pathDisco string, starPart int64, bit int64) Inodos {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStruct := miSB.SbTamanioEstructuraInodo
+	starIn := miSB.SbApInicioInodos
+
+	//leemos DD
+	var posDD int64 = 0
+	if bit == 1 {
+		posDD = starIn
+	} else {
+		//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := bit - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posDD = starIn + int64(op2) + 1
+
+	}
+
+	file.Seek(posDD, 0)
+
+	newStructI := Inodos{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer2, binary.BigEndian, &newStructI)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//ya leido retornamos
+
+	return newStructI
+}
+
+func retornarBloque(pathDisco string, starPart int64, bit int64) bloque {
+
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStruct := miSB.SbTamanioEstructuraBloques
+	starB := miSB.SbApInicioBloques
+
+	//leemos DD
+	var posDD int64 = 0
+	if bit == 1 {
+		posDD = starB
+	} else {
+		//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := bit - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posDD = starB + int64(op2) + 1
+
+	}
+
+	file.Seek(posDD, 0)
+
+	newStructB := bloque{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer2, binary.BigEndian, &newStructB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//ya leido retornamos
+
+	return newStructB
+}
+
+func retornarNombreSinEspaciosNulosB(arr [25]byte) string {
+	nombre := ""
+	for x := 0; x < 25; x++ {
+		if arr[x] != 0 { //los que sean nulos no los concatena
+			nombre += string(arr[x])
+		}
+	}
+	return nombre
+}
+
+//---------------------------------FIN REPORTE SISTEMA COMPLETO ----------------------------------//
 
 //---------------------------------REPORTE BITACORA ----------------------------------//
 
