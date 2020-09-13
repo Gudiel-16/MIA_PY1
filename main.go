@@ -246,6 +246,7 @@ func analizador(cadena string) {
 	var caracter string = ""
 
 	var bandera bool = false // me ayudara para que despues de -> pueda concatenar negativos -12, porque concatena ->- y aparte el numero
+	var bandera2 int = 0
 
 	for i := 0; i < len(cadena); i++ {
 		examinar := cadena[i]        //caracter actual de la cadena
@@ -269,6 +270,7 @@ func analizador(cadena string) {
 				caracter = caracter + string(examinar)
 				estado = 1
 			} else if examinarAsci == 34 { // ""
+				bandera2 = bandera2 + 1
 				caracter = caracter + string(examinar)
 				estado = 4 //entra en estado de rutas
 			} else if examinarAsci == 46 { // .
@@ -352,8 +354,18 @@ func analizador(cadena string) {
 				caracter = caracter + string(examinar)
 				estado = 4
 			} else if examinarAsci == 34 { // "
+				bandera2 = bandera2 + 1
 				caracter = caracter + string(examinar) //concateno
-				estado = 4
+				if bandera2 == 2 {
+					bandera2 = 0
+					analizador2(caracter)
+					caracter = ""
+					i = i - 1
+					estado = 0
+				} else {
+					estado = 4
+				}
+
 			} else if examinarAsci == 46 { // .
 				caracter = caracter + string(examinar)
 				estado = 4
@@ -1302,11 +1314,15 @@ func insertarParticionPrimaria(path string, sizePart int64, typee string, fit st
 		misParticiones[contador] = particionPrimariaNew
 	}
 
-	fmt.Println("\nINSERTO PRIMARIA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("\nPARTICION PRIMARIA CREADA CORRECTAMENTE:")
+	fmt.Println("	Nombre: ", name)
+	fmt.Println("	Tamanio: ", sizePart)
+
+	/*fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
 	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Star: ", misParticiones[1].Start, " Tipo: ", string(misParticiones[1].TipoParticion))
 	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Star: ", misParticiones[2].Start, " Tipo: ", string(misParticiones[2].TipoParticion))
 	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Star: ", misParticiones[3].Start, " Tipo: ", string(misParticiones[3].TipoParticion))
+	*/
 
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
@@ -1464,12 +1480,14 @@ func insertarParticionExtendida(path string, sizePart int64, typee string, fit s
 		misParticiones[contador] = particionPrimariaNew
 	}
 
-	fmt.Println("\nINSERTO EXTENDIDA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("\nPARTICION EXTENDIDA CREADA CORRECTAMENTE:")
+	fmt.Println("	Nombre: ", name)
+	fmt.Println("	Tamanio: ", sizePart)
+	/*fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
 	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Star: ", misParticiones[1].Start, " Tipo: ", string(misParticiones[1].TipoParticion))
 	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Star: ", misParticiones[2].Start, " Tipo: ", string(misParticiones[2].TipoParticion))
 	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Star: ", misParticiones[3].Start, " Tipo: ", string(misParticiones[3].TipoParticion))
-
+	*/
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se creo una nueva particion se agregadron a 'misPartiiones'
 	//entonces 'misParticiones' tiene las actuales, mas la nueva que se le inserto
@@ -2152,10 +2170,12 @@ func insertarParticionLogica(path string, sizePart int64, typee string, fit stri
 
 	}
 
-	fmt.Println("\nINSERTO LOGICA:")
-	for i := 0; i < len(misParticionesLogicas); i++ {
+	fmt.Println("\nPARTICION LOGICA CREADA CORRECTAMENTE:")
+	fmt.Println("	Nombre: ", name)
+	fmt.Println("	Tamanio: ", sizePart)
+	/*for i := 0; i < len(misParticionesLogicas); i++ {
 		fmt.Println("	arr pos ", i, " Tamanio : ", misParticionesLogicas[i].Tamanio, " Star: ", misParticionesLogicas[i].Start, " Next: ", misParticionesLogicas[i].Next, " Tipo: ", string(misParticionesLogicas[i].TipoParticion))
-	}
+	}*/
 
 	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
 	//cuando se crea una nueva particion logica se agregan a 'misParticionesPrimarias'
@@ -3782,18 +3802,22 @@ func montarParticion(path string, name string) {
 
 		if existeYaEseMount(path, name) == false {
 
-			//si es particion primaria o extend
-			if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
-				generarIDMountYGuardar(path, name)
-				fmt.Println("SE MONTO PARTICION:")
-				fmt.Println("	Nombre: ", name)
-				//si es particion logica
-			} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
-				generarIDMountYGuardar(path, name)
-				fmt.Println("SE MONTO PARTICION:")
-				fmt.Println("	Nombre: ", name)
+			if existeArchivo(path) {
+				//si es particion primaria o extend
+				if validarSiExisteParticionPrimariaExtendidaConNombreEspecifico(path, name) {
+					generarIDMountYGuardar(path, name)
+					fmt.Println("SE MONTO PARTICION:")
+					fmt.Println("	Nombre: ", name)
+					//si es particion logica
+				} else if validarSiExisteParticionLogicaConNombreEspecifico(path, name) {
+					generarIDMountYGuardar(path, name)
+					fmt.Println("SE MONTO PARTICION:")
+					fmt.Println("	Nombre: ", name)
+				} else {
+					fmt.Println("\n[ ERROR: no se puede montar particion con nombre: ", name, " porque no existe ]")
+				}
 			} else {
-				fmt.Println("\n[ ERROR: no se puede montar particion con nombre: ", name, " porque no existe ]")
+				fmt.Println("\n[ ERROR: No existe Disco con path: ", path)
 			}
 
 		} else {
@@ -4756,7 +4780,7 @@ func operacionMkdir(id string, pathCarpetas string, p bool) {
 	//file.Seek(starAVD, 0)
 
 	//recorrerAVD(pathDisco, starParticion, primerBitLibre, file, err, nombresCarpetasComoArreglo, starAVD, 0, 1, tamStructAVD)
-	fmt.Println(nombresCarpetasComoArreglo)
+	//fmt.Println(nombresCarpetasComoArreglo)
 	avdRecursive(nombresCarpetasComoArreglo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
 
 }
@@ -4826,7 +4850,7 @@ func recorrerAVD(pathDisco string, starParticion int64, primerBitLibre int64, fi
 
 func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
 
-	fmt.Println("arr: ", arrCarpetaDondeEmpezar)
+	//fmt.Println("arr: ", arrCarpetaDondeEmpezar)
 
 	//cuando ya este en la ultima parara, es mi if de parada
 	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
@@ -4899,7 +4923,6 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 						if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
 							for y := 0; y < len(subDirectorios); y++ {
 								if subDirectorios[y] == 0 {
-									fmt.Println("2guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
 									//actualizar apuntador del directorio actual
 									avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(y), primerBitLibre)
 									//crear directorio
@@ -4914,6 +4937,7 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 									sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
 									//guardar en bitacora
 									bitacoraGuardarStruct(pathDisco, starParticion, "mkdir", 1, arrCarpetas[arrCarpetaDondeEmpezar+1], "NAC")
+									fmt.Println("\nSE CREO CARPETA: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " EN: ", arrCarpetas[arrCarpetaDondeEmpezar])
 									bandera = true
 									return true
 								}
@@ -4922,7 +4946,6 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 					}
 
 				} else if subDirectorios[x] == 0 {
-					fmt.Println("1guardar: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " en: ", arrCarpetas[arrCarpetaDondeEmpezar])
 					//actualizar apuntador del directorio actual
 					avdaActualizarApuntadorDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, int64(x), primerBitLibre)
 					//crear directorio
@@ -4937,6 +4960,7 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 					sbAumentarRestarCantidadStructAVD(pathDisco, starParticion)
 					//guardar en bitacora
 					bitacoraGuardarStruct(pathDisco, starParticion, "mkdir", 1, arrCarpetas[arrCarpetaDondeEmpezar+1], "NAC")
+					fmt.Println("\nSE CREO CARPETA: ", arrCarpetas[arrCarpetaDondeEmpezar+1], " EN: ", arrCarpetas[arrCarpetaDondeEmpezar])
 					return true
 				}
 
@@ -4950,8 +4974,8 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 					if subDirectorioEstaLleno(subDirectorios) {
 						//si hay que crear apuntador indirecto
 						if miAVD.AvdApIndirecto == 0 {
-							fmt.Println("hay que crear apuntador indirecto")
-							fmt.Println("bit libre: ", primerBitLibre)
+							//fmt.Println("hay que crear apuntador indirecto")
+							//fmt.Println("bit libre: ", primerBitLibre)
 							//actualizo apuntador indirecto
 							avdaActualizarApuntadorIndirectoDeDirectorioActual(pathDisco, starAVD, int64(numStructLeer), tamStruct, primerBitLibre)
 							//creo directorio
@@ -5045,7 +5069,7 @@ func avdSonIgualesLosNombres(pathDisco string, starAVD int64, tamStruct int64, n
 		}
 	}
 
-	fmt.Println("IGUALDAD: numAp: ", numApuntador, " ", nomDirect, " = ", nameDirectorio)
+	//fmt.Println("IGUALDAD: numAp: ", numApuntador, " ", nomDirect, " = ", nameDirectorio)
 
 	if strings.Compare(strings.ToLower(nomDirect), strings.ToLower(nameDirectorio)) == 0 {
 		return true
@@ -5082,7 +5106,7 @@ func avdCrearDirectorio(pathDisco string, starAVD int64, bitLibre int64, tamStru
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	fmt.Println("crear Directorio: ", nameDirectorio, " En posicion Disco: ", bitLibre)
+	//fmt.Println("crear Directorio: ", nameDirectorio, " En posicion Disco: ", bitLibre)
 
 }
 
@@ -5135,7 +5159,7 @@ func avdaActualizarApuntadorDeDirectorioActual(pathDisco string, starAVD int64, 
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	println("Posicion: ", posApuntador, " numApuntador: ", bitLibre)
+	//println("Posicion: ", posApuntador, " numApuntador: ", bitLibre)
 
 }
 
@@ -5185,7 +5209,7 @@ func avdaActualizarApuntadorIndirectoDeDirectorioActual(pathDisco string, starAV
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	println("numApuntadorIndirecto: ", bitLibre)
+	//println("numApuntadorIndirecto: ", bitLibre)
 }
 
 //inserta un struct en la posicion indicada
@@ -5554,14 +5578,14 @@ func operacionMkfile(id string, pathArch string, p bool, sizeArch int, cont stri
 	//nombre Archivo
 	nombreArchivo := nombresCarpetasComoArreglo[len(nombresCarpetasComoArreglo)-1]
 
-	fmt.Println(nombresCarpetasComoArreglo)
+	//fmt.Println(nombresCarpetasComoArreglo)
 
 	//array carpetas, nombre archivo, donde empieza a recorrer, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, struc a leer
 	recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, cont, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
 }
 
 func recursiveMkfile(arrCarpetas []string, nombreArchivo string, contArchivo string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
-	fmt.Println("arr: ", arrCarpetaDondeEmpezar)
+	//fmt.Println("arr: ", arrCarpetaDondeEmpezar)
 
 	//cuando ya este en la ultima parara, es mi if de parada
 	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
@@ -5626,7 +5650,7 @@ func recursiveMkfile(arrCarpetas []string, nombreArchivo string, contArchivo str
 					namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
 					if namesIguales {
 						//existe carpeta
-						fmt.Println(arrCarpetaDondeEmpezar, " entrar en: ", arrCarpetas[arrCarpetaDondeEmpezar+1])
+						//fmt.Println(arrCarpetaDondeEmpezar, " entrar en: ", arrCarpetas[arrCarpetaDondeEmpezar+1])
 
 						banderaBusc = recursiveMkfile(arrCarpetas, nombreArchivo, contArchivo, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
 						return true
@@ -5642,7 +5666,7 @@ func recursiveMkfile(arrCarpetas []string, nombreArchivo string, contArchivo str
 					//si hay que crear apuntador indirecto
 					if miAVD.AvdApIndirecto != 0 {
 						//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
-						fmt.Println("entro en indirecto ")
+						//fmt.Println("entro en indirecto ")
 						structLeer := miAVD.AvdApIndirecto
 						banderaBusc = recursiveMkfile(arrCarpetas, nombreArchivo, contArchivo, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
 						return true
@@ -5747,6 +5771,9 @@ func irADetalleDirectorio(pathDisco string, starPart int64, starAVD int64, tamSt
 
 		//guardamos inodo, en inodo guardara bloques
 		logicaInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, primerBitLibreInodo, starBloque, tamStructBloque)
+		//guardar en bitacora
+		bitacoraGuardarStruct(pathDisco, starPart, "mkfile", 0, nombreArchivo, contArchivo)
+		fmt.Println("\nSE CREO ARCHIVO CON NOMBRE: ", nombreArchivo)
 
 		//si ya existe DD
 	} else {
@@ -5754,6 +5781,9 @@ func irADetalleDirectorio(pathDisco string, starPart int64, starAVD int64, tamSt
 		guardarDetalleDirectorio2(pathDisco, starDD, tamStructDD, apDD, nombreArchivo, primerBitLibreInodo)
 		//guardamos inodo, en inodo guardara bloques
 		logicaInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, primerBitLibreInodo, starBloque, tamStructBloque)
+		//guardar en bitacora
+		bitacoraGuardarStruct(pathDisco, starPart, "mkfile", 0, nombreArchivo, contArchivo)
+		fmt.Println("\nSE CREO ARCHIVO CON NOMBRE: ", nombreArchivo)
 	}
 }
 
@@ -5804,7 +5834,7 @@ func guardarDetalleDirectorio(pathDisco string, starDD int64, tamStruct int64, b
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo)
+	//fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo)
 }
 
 func guardarDetalleDirectorio2(pathDisco string, starDD int64, tamStruct int64, bitLibre int64, nombreArchivo string, bitLibreInodo int64) {
@@ -5870,7 +5900,7 @@ func guardarDetalleDirectorio2(pathDisco string, starDD int64, tamStruct int64, 
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo, " y apInodo: ", bitLibreInodo)
+	//fmt.Println("crear DD en posicion Disco: ", bitLibre, " con nombre: ", nombreArchivo, " y apInodo: ", bitLibreInodo)
 }
 
 func logicaInodo(pathDisco string, starPart int64, starInodo int64, tamStructInodo int64, contArchivo string, bitLibreInodo int64, starBloques int64, tamStructBloque int64) {
@@ -5894,7 +5924,6 @@ func logicaInodo(pathDisco string, starPart int64, starInodo int64, tamStructIno
 		numBloques = aja2
 	}
 
-	fmt.Println("->>>>>>>>>>>>>>>>.", numBloques)
 	guardarInodo(pathDisco, starPart, starInodo, tamStructInodo, contArchivo, bitLibreInodo, int64(tamanioI), int64(numBloques), starBloques, tamStructBloque)
 
 }
@@ -5981,7 +6010,7 @@ func guardarInodo(pathDisco string, starPart int64, starInodo int64, tamStructIn
 	//actualizamos, aumentamos 1 en cantidad estructuras y restamos una de las libres del sb
 	sbAumentarRestarCantidadStructInodo(pathDisco, starPart)
 
-	fmt.Println("crear Inodo en posicion Disco: ", bitLibreInodo)
+	//fmt.Println("crear Inodo en posicion Disco: ", bitLibreInodo)
 }
 
 func guardarBloque(pathDisco string, starBloques int64, tamStructBloque int64, cont string, bitlibreBloque int64) {
@@ -6017,7 +6046,7 @@ func guardarBloque(pathDisco string, starBloques int64, tamStructBloque int64, c
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	fmt.Println("crear Bloque en posicion Disco: ", bitlibreBloque, " con contenido: ", cont)
+	//fmt.Println("crear Bloque en posicion Disco: ", bitlibreBloque, " con contenido: ", cont)
 }
 
 //actualiza el bitmap del DD
@@ -6198,7 +6227,7 @@ func ddActualizarApuntadorDDDeDirectorioActual(pathDisco string, starAVD int64, 
 	binary.Write(&binario1, binary.BigEndian, s1)
 	escribirBytes(file, binario1.Bytes())
 
-	println("Apuntador DD: ", bit)
+	//println("Apuntador DD: ", bit)
 
 }
 
@@ -6927,12 +6956,16 @@ func operacionRep(name string, path string, id string, ruta string) {
 			reporteBitmapInodo(pathDisco, starPart, path)
 		} else if strings.Compare(strings.ToLower(name), "bm_block") == 0 {
 			reporteBitmapBloques(pathDisco, starPart, path)
-		} else if strings.Compare(strings.ToLower(name), "tree_directorio") == 0 {
+		} else if strings.Compare(strings.ToLower(name), "directorio") == 0 {
 			reporteGeneralDirectorio(pathDisco, starPart, path)
 		} else if strings.Compare(strings.ToLower(name), "bitacora") == 0 {
 			reporteBitacora(pathDisco, starPart, path)
 		} else if strings.Compare(strings.ToLower(name), "tree_complete") == 0 {
 			reporteSistemaCompleto(pathDisco, starPart, path)
+		} else if strings.Compare(strings.ToLower(name), "tree_directorio") == 0 {
+			reporteTreeDirectorio(pathDisco, starPart, path, ruta)
+		} else if strings.Compare(strings.ToLower(name), "tree_file") == 0 {
+			reporteTreeFile(pathDisco, starPart, path, ruta)
 		}
 	} else {
 		fmt.Println("\n[ ERROR: no existe particion montada con id: ", id, " para crear reporte")
@@ -7073,6 +7106,7 @@ func reporteMBR(path string, pathGuardar string) {
 
 	crearDot(pathGuardar, cadenaRep)
 	crearImg(pathGuardar)
+	fmt.Println("\nREPORTE MBR CREADO CORRECTAMENTE!")
 }
 
 //-------------------------------FIN REPORTE MBR-------------------------------//
@@ -7945,6 +7979,7 @@ func reporteDisk(path string, pathGuardar string) {
 
 	crearDot(pathGuardar, cadenaRep)
 	crearImg(pathGuardar)
+	fmt.Println("\nREPORTE DISK CREADO CORRECTAMENTE!")
 
 }
 
@@ -8061,6 +8096,7 @@ func reporteSB(path string, starPart int64, pathGuardar string) {
 
 	crearDot(pathGuardar, cadenaRep)
 	crearImg(pathGuardar)
+	fmt.Println("\nREPORTE SB CREADO CORRECTAMENTE!")
 
 }
 
@@ -8130,7 +8166,9 @@ func reporteBitmapAVD(path string, starPart int64, pathGuardar string) {
 		}
 		cadenaRep += strconv.Itoa(int(arrBitmapAVD[i])) + ","
 	}
+
 	createBITMAP(pathGuardar, cadenaRep)
+	fmt.Println("\nREPORTE BITMAP AVD CREADO CORRECTAMENTE!")
 }
 
 func reporteBitmapDD(path string, starPart int64, pathGuardar string) {
@@ -8195,7 +8233,9 @@ func reporteBitmapDD(path string, starPart int64, pathGuardar string) {
 		}
 		cadenaRep += strconv.Itoa(int(arrBitmapDD[i])) + ","
 	}
+
 	createBITMAP(pathGuardar, cadenaRep)
+	fmt.Println("\nREPORTE BITMAP DETALLE DIRECTORIO CREADO CORRECTAMENTE!")
 }
 
 func reporteBitmapInodo(path string, starPart int64, pathGuardar string) {
@@ -8260,7 +8300,9 @@ func reporteBitmapInodo(path string, starPart int64, pathGuardar string) {
 		}
 		cadenaRep += strconv.Itoa(int(arrBitmapI[i])) + ","
 	}
+
 	createBITMAP(pathGuardar, cadenaRep)
+	fmt.Println("\nREPORTE BITMAP INODO CREADO CORRECTAMENTE!")
 }
 
 func reporteBitmapBloques(path string, starPart int64, pathGuardar string) {
@@ -8325,7 +8367,9 @@ func reporteBitmapBloques(path string, starPart int64, pathGuardar string) {
 		}
 		cadenaRep += strconv.Itoa(int(arrBitmapBloq[i])) + ","
 	}
+
 	createBITMAP(pathGuardar, cadenaRep)
+	fmt.Println("\nREPORTE BITMAP BLOQUES CREADO CORRECTAMENTE!")
 }
 
 func createBITMAP(path string, cadena string) {
@@ -8389,6 +8433,7 @@ func reporteGeneralDirectorio(path string, starPart int64, pathGuardar string) {
 
 	crearDot(pathGuardar, graph)
 	crearImg(pathGuardar)
+	fmt.Println("\nREPORTE DIRECTORIO CREADO CORRECTAMENTE!")
 	//fmt.Println(graph)
 
 }
@@ -8613,6 +8658,7 @@ func reporteSistemaCompleto(path string, starPart int64, pathGuardar string) {
 
 	crearDot(pathGuardar, graph)
 	crearImg(pathGuardar)
+	fmt.Println("\nREPORTE TREE COMPLETE CREADO CORRECTAMENTE!")
 	//fmt.Println(graph)
 
 }
@@ -9064,6 +9110,580 @@ func retornarNombreSinEspaciosNulosB(arr [25]byte) string {
 
 //---------------------------------FIN REPORTE SISTEMA COMPLETO ----------------------------------//
 
+//---------------------------------INICIO REPORTE TREE DIRECTORIO ----------------------------------//
+
+func reporteTreeDirectorio(path string, starPart int64, pathGuardar string, pathBusqueda string) {
+	//guarda en un array todas las carptas por separado
+	nombresCarpetasComoArreglo := strings.Split(pathBusqueda, "/")
+	nombresCarpetasComoArreglo[0] = "/"
+
+	generarRepTreeDirectorio(path, starPart, pathGuardar, nombresCarpetasComoArreglo)
+}
+
+func generarRepTreeDirectorio(path string, starPart int64, pathGuardar string, arrCarpetas []string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+	starAVD := miSB.SbApInicioArbolDirectorio
+
+	recursiveTreeDirectorio(path, pathGuardar, starAVD, starPart, tamStructAVD, 1, arrCarpetas, 0)
+
+}
+
+func recursiveTreeDirectorio(pathDisco string, pathGuardar string, starAVD int64, starParticion int64, tamStruct int64, numStructLeer int, arrCarpetas []string, arrCarpetaDondeEmpezar int) bool {
+	//cuando ya este en la ultima parara, es mi if de parada
+	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
+
+		//Abrimos
+		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+		defer file.Close()
+		if err != nil { //validar que no sea nulo.
+			log.Fatal(err)
+		}
+
+		var inicioLectura int64 = 0
+
+		if numStructLeer == 1 {
+			inicioLectura = starAVD
+		} else {
+			//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+			//resto 1, seria 2-1 = 1
+			op1 := numStructLeer - 1
+			//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+			op2 := op1 * int(tamStruct)
+			//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+			inicioLectura = starAVD + int64(op2) + 1
+		}
+
+		file.Seek(inicioLectura, 0)
+
+		//leemos struct actual
+		miAVD := ArbolVirtualDirectorio{}
+		data2 := leerBytesFdisk(file, int(tamStruct))
+
+		//Convierte la data en un buffer,necesario para decodificar binario
+		buffer2 := bytes.NewBuffer(data2)
+
+		//Decodificamos y guardamos en la variable m
+		err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+		if err != nil {
+			log.Fatal("binary.Read failed", err)
+		}
+
+		subDirectorios := miAVD.AvdArraySubDirectorios
+
+		//crear detalle directorio
+		if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
+			fmt.Println("graficar: ", arrCarpetas[arrCarpetaDondeEmpezar], " con apuntador: ", numStructLeer)
+			cadenaRep := ""
+			cuerpoCad := retornarCadenaTreeDirectorio(pathDisco, starAVD, starParticion, tamStruct, numStructLeer, cadenaRep)
+			graph := "digraph {\n\n"
+			graph += cuerpoCad
+			graph += "}"
+
+			crearDot(pathGuardar, graph)
+			crearImg(pathGuardar)
+
+			fmt.Println("\nREPORTE TREE DIRECTORIO CREADO CORRECTAMENTE!")
+		}
+
+		//empezara en 0, luego en 1
+		for i := arrCarpetaDondeEmpezar; i < len(arrCarpetas)-1; i++ {
+
+			banderaBusc := false
+
+			for x := 0; x < len(subDirectorios); x++ {
+
+				bandera := false
+
+				if subDirectorios[x] != 0 {
+
+					//numero de apuntador
+					numApuntador := subDirectorios[x]
+					namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
+					if namesIguales {
+						//existe carpeta
+						//fmt.Println(arrCarpetaDondeEmpezar, " entrar en: ", arrCarpetas[arrCarpetaDondeEmpezar+1])
+
+						banderaBusc = recursiveTreeDirectorio(pathDisco, pathGuardar, starAVD, starParticion, tamStruct, int(numApuntador), arrCarpetas, arrCarpetaDondeEmpezar+1)
+						return true
+					}
+				}
+
+				if bandera {
+					return true
+				}
+
+				//cuando esten en la ultima posicion
+				if x == len(subDirectorios)-1 {
+					//si hay que crear apuntador indirecto
+					if miAVD.AvdApIndirecto != 0 {
+						//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
+						//fmt.Println("entro en indirecto ")
+						structLeer := miAVD.AvdApIndirecto
+						banderaBusc = recursiveTreeDirectorio(pathDisco, pathGuardar, starAVD, starParticion, tamStruct, int(structLeer), arrCarpetas, arrCarpetaDondeEmpezar)
+						return true
+					}
+				}
+			}
+
+			if banderaBusc {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func retornarCadenaTreeDirectorio(pathDisco string, starAVD int64, starParticion int64, tamStruct int64, numStructLeer int, cadenaRep string) string {
+
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct actual
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//para usar en DD
+	nombreTabla := ""
+
+	//para crear tabla, se crea la tabla o estructura del directorio, para luego hacer los enlaces
+	nombreDirectorio := retornarNombreSinEspaciosNulos(miAVD.AvdNombreDirectorio)
+
+	textTabla := ""
+	if strings.Compare(nombreDirectorio, "/") == 0 {
+		textTabla += "raiz" + strconv.Itoa(int(numStructLeer)) + " [ \n"
+		nombreTabla = "raiz" + strconv.Itoa(int(numStructLeer))
+	} else {
+		textTabla += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + " [\n"
+		nombreTabla = nombreDirectorio + strconv.Itoa(int(numStructLeer))
+	}
+	textTabla += "shape=plaintext\n"
+	textTabla += "label=<\n"
+	textTabla += "<table border='1' cellborder='1'>\n"
+	textTabla += "<tr><td colspan=\"8\">" + nombreDirectorio + "</td></tr>\n"
+	textTabla += "<tr><td port='ap0'></td><td port='ap1'></td><td port='ap2'></td><td port='ap3'></td><td port='ap4'></td><td port='ap5'></td><td bgcolor='blue' port='dd'></td><td bgcolor='green' port='apInd'></td></tr>\n"
+	textTabla += "</table>\n"
+	textTabla += ">];\n"
+
+	cadenaRep += textTabla
+
+	//si tiene apuntador indirecto
+	if miAVD.AvdApDetalleDirectorio != 0 {
+		textDD := ""
+
+		//obtengo el DD
+		miDD := retornarDD(pathDisco, starParticion, miAVD.AvdApDetalleDirectorio)
+
+		//accedo al array de DD
+		arrDD := miDD.DdArrayArchivosTXT
+
+		//concateno apuntador, ej: raiz1:dd -> dd2
+		textDD += nombreTabla + ":dd -> dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + "\n"
+
+		//para encabezo de tabla DD
+		textDD += "dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + " [\n"
+		textDD += "shape=plaintext\n"
+		textDD += "label=<\n"
+		textDD += "<table color='blue' cellspacing='0'>\n"
+		textDD += "<tr><td> DD </td></tr>\n"
+
+		//for para los nombre de archivos que tenga el DD (crea tabla DD con nombres de archivos)
+		for i := 0; i < len(arrDD); i++ {
+			temp := arrDD[i]
+			//hay un nombre de archivo
+			if temp.DdNombreArchivoTXT[0] != 0 {
+				nombre := retornarNombreSinEspaciosNulos(temp.DdNombreArchivoTXT)
+				textDD += "<tr><td port='ap" + strconv.Itoa(int(i)) + "'>" + nombre + "</td></tr>\n"
+				//fmt.Println("AP INIDO---> ", temp.DdApInodo)
+			} else {
+				textDD += "<tr><td port='ap" + strconv.Itoa(int(i)) + "'></td></tr>\n"
+			}
+
+		}
+
+		textDD += "<tr><td port='apInd' bgcolor='green'></td></tr>\n"
+		textDD += "</table>\n"
+		textDD += ">];\n"
+
+		cadenaRep += textDD
+	}
+
+	return cadenaRep
+}
+
+//---------------------------------FIN REPORTE TREE DIRECTORIO ----------------------------------//
+
+func reporteTreeFile(path string, starPart int64, pathGuardar string, pathBusqueda string) {
+	//guarda en un array todas las carptas por separado
+	nombresCarpetasComoArreglo := strings.Split(pathBusqueda, "/")
+	nombresCarpetasComoArreglo[0] = "/"
+
+	generarRepTreeFile(path, starPart, pathGuardar, nombresCarpetasComoArreglo)
+}
+
+func generarRepTreeFile(path string, starPart int64, pathGuardar string, arrCarpetas []string) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+	starAVD := miSB.SbApInicioArbolDirectorio
+
+	cadenaRep := ""
+
+	cuerpoCad := retornarCadenaTreeFile(path, starAVD, starPart, tamStructAVD, 1, arrCarpetas, 0, cadenaRep)
+
+	graph := "digraph {\n\n"
+	graph += cuerpoCad
+	graph += "}"
+
+	crearDot(pathGuardar, graph)
+	crearImg(pathGuardar)
+	fmt.Println("\nREPORTE TREE FILE CREADO CORRECTAMENTE!")
+	//fmt.Println(graph)
+
+}
+
+func retornarCadenaTreeFile(pathDisco string, starAVD int64, starParticion int64, tamStruct int64, numStructLeer int, arrCarpetas []string, arrCarpetaDondeEmpezar int, cadenaRep string) string {
+
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct actual
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	subDirectorios := miAVD.AvdArraySubDirectorios
+
+	//para usar en DD
+	nombreTabla := ""
+
+	//para crear tabla, se crea la tabla o estructura del directorio, para luego hacer los enlaces
+	nombreDirectorio := retornarNombreSinEspaciosNulos(miAVD.AvdNombreDirectorio)
+
+	textTabla := ""
+
+	if strings.Compare(strings.ToLower(nombreDirectorio), strings.ToLower(arrCarpetas[arrCarpetaDondeEmpezar])) == 0 {
+		if strings.Compare(nombreDirectorio, "/") == 0 {
+			textTabla += "raiz" + strconv.Itoa(int(numStructLeer)) + " [ \n"
+			nombreTabla = "raiz" + strconv.Itoa(int(numStructLeer))
+		} else {
+			textTabla += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + " [\n"
+			nombreTabla = nombreDirectorio + strconv.Itoa(int(numStructLeer))
+		}
+		textTabla += "shape=plaintext\n"
+		textTabla += "label=<\n"
+		textTabla += "<table border='1' cellborder='1'>\n"
+		textTabla += "<tr><td colspan=\"8\">" + nombreDirectorio + "</td></tr>\n"
+		textTabla += "<tr><td port='ap0'></td><td port='ap1'></td><td port='ap2'></td><td port='ap3'></td><td port='ap4'></td><td port='ap5'></td><td bgcolor='blue' port='dd'></td><td bgcolor='green' port='apInd'></td></tr>\n"
+		textTabla += "</table>\n"
+		textTabla += ">];\n"
+
+		cadenaRep += textTabla
+	}
+
+	if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
+		//si tiene apuntador indirecto
+		if miAVD.AvdApDetalleDirectorio != 0 {
+			nombreArchivo := arrCarpetas[len(arrCarpetas)-1]
+			textDD := ""
+
+			//obtengo el DD
+			miDD := retornarDD(pathDisco, starParticion, miAVD.AvdApDetalleDirectorio)
+
+			//accedo al array de DD
+			arrDD := miDD.DdArrayArchivosTXT
+
+			//concateno apuntador, ej: raiz1:dd -> dd2
+			textDD += nombreTabla + ":dd -> dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + "\n"
+
+			//para encabezo de tabla DD
+			textDD += "dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + " [\n"
+			textDD += "shape=plaintext\n"
+			textDD += "label=<\n"
+			textDD += "<table color='blue' cellspacing='0'>\n"
+			textDD += "<tr><td> DD </td></tr>\n"
+
+			//for para los nombre de archivos que tenga el DD (crea tabla DD con nombres de archivos)
+			for i := 0; i < len(arrDD); i++ {
+				temp := arrDD[i]
+				//hay un nombre de archivo
+				if temp.DdNombreArchivoTXT[0] != 0 {
+					nombre := retornarNombreSinEspaciosNulos(temp.DdNombreArchivoTXT)
+					textDD += "<tr><td port='ap" + strconv.Itoa(int(i)) + "'>" + nombre + "</td></tr>\n"
+					//fmt.Println("AP INIDO---> ", temp.DdApInodo)
+				} else {
+					textDD += "<tr><td port='ap" + strconv.Itoa(int(i)) + "'></td></tr>\n"
+				}
+
+			}
+
+			textDD += "<tr><td port='apInd' bgcolor='green'></td></tr>\n"
+			textDD += "</table>\n"
+			textDD += ">];\n"
+
+			//PARA INODO
+			for i := 0; i < len(arrDD); i++ {
+				temp := arrDD[i]
+				//hay un nombre de archivo
+				if temp.DdNombreArchivoTXT[0] != 0 {
+
+					nombredentroArr := retornarNombreSinEspaciosNulos(temp.DdNombreArchivoTXT)
+
+					if strings.Compare(strings.ToLower(nombredentroArr), strings.ToLower(nombreArchivo)) == 0 {
+
+						numInodo := temp.DdApInodo
+						miInodo := retornarInodo(pathDisco, starParticion, numInodo)
+						arrB := miInodo.IApArrayBloques
+
+						//encabezado INODO
+						//para encabezo de tabla DD
+						textDD += "inodo" + strconv.Itoa(int(numInodo)) + " [\n"
+						textDD += "shape=plaintext\n"
+						textDD += "label=<\n"
+						textDD += "<table color='red' cellspacing='0'>\n"
+						textDD += "<tr><td colspan=\"2\"> INODO </td></tr>\n"
+
+						textDD += "<tr><td>Tamanio</td><td>" + strconv.Itoa(int(miInodo.ITamanioArchivoTXT)) + "</td></tr>"
+						textDD += "<tr><td>Bloques</td><td>" + strconv.Itoa(int(miInodo.INumeroBloquesAsignados)) + "</td></tr>"
+
+						for j := 0; j < len(arrB); j++ {
+							textDD += "<tr><td colspan=\"2\" port='ap" + strconv.Itoa(int(j)) + "'>ap" + strconv.Itoa(int(j)) + "</td></tr>"
+						}
+
+						textDD += "<tr><td colspan=\"2\" bgcolor='green' port='apInd'></td></tr>\n"
+						textDD += "</table>\n"
+						textDD += ">];\n"
+
+						//enlazamos apuntador, eje: dd2:ap0 -> inodo2
+						textDD += "dd" + strconv.Itoa(int(miAVD.AvdApDetalleDirectorio)) + ":ap" + strconv.Itoa(int(i)) + " -> inodo" + strconv.Itoa(int(numInodo)) + " \n"
+
+					}
+				}
+			}
+
+			//PARA BLOQUES
+			for i := 0; i < len(arrDD); i++ {
+				temp := arrDD[i]
+				//hay un nombre de archivo
+				if temp.DdNombreArchivoTXT[0] != 0 {
+
+					nombredentroArr := retornarNombreSinEspaciosNulos(temp.DdNombreArchivoTXT)
+
+					//fmt.Println("nomArch------------>>>>>>>>.", nombredentroArr, " ", nombreArchivo)
+
+					if strings.Compare(strings.ToLower(nombredentroArr), strings.ToLower(nombreArchivo)) == 0 {
+						numInodo := temp.DdApInodo
+						miInodo := retornarInodo(pathDisco, starParticion, numInodo)
+						arrB := miInodo.IApArrayBloques
+
+						//recorro arr bloques
+						for j := 0; j < len(arrB); j++ {
+							if arrB[j] != 0 {
+								numBloque := arrB[j]
+								miBloque := retornarBloque(pathDisco, starParticion, numBloque)
+								contenidoB := retornarNombreSinEspaciosNulosB(miBloque.BInformacionArchivo)
+
+								textDD += "bloque" + strconv.Itoa(int(numBloque)) + " [\n"
+								textDD += "shape=plaintext\n"
+								textDD += "label=<\n"
+								textDD += "<table color='cyan' cellspacing='0'>\n"
+								textDD += "<tr><td>" + contenidoB + "</td></tr>\n"
+								textDD += "</table>\n"
+								textDD += ">];"
+
+								//enlazamos apuntador, eje: inodo2:ap0 -> bloque3
+								textDD += "inodo" + strconv.Itoa(int(numInodo)) + ":ap" + strconv.Itoa(int(j)) + " -> bloque" + strconv.Itoa(int(numBloque)) + "\n"
+							}
+						}
+					}
+				}
+			}
+
+			cadenaRep += textDD
+		}
+	}
+
+	for x := 0; x < len(subDirectorios); x++ {
+
+		if subDirectorios[x] != 0 {
+
+			//numero de apuntador
+			numApuntador := subDirectorios[x]
+
+			//obtengo el nombre hacia donde apunta mi directorio actual
+			nombreSig := retornarNombreHaciaDondeApunta(pathDisco, starAVD, starParticion, tamStruct, int(numApuntador))
+
+			cadarr := arrCarpetas[arrCarpetaDondeEmpezar+1] + strconv.Itoa(int(numApuntador))
+
+			//si el siguiente es igual
+			if strings.Compare(strings.ToLower(nombreSig), strings.ToLower(cadarr)) == 0 {
+
+				cadApuntador := ""
+				//si el directorio es la raiz
+				if strings.Compare(nombreDirectorio, "/") == 0 {
+					cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":ap" + strconv.Itoa(int(x)) + " -> " + nombreSig + "\n"
+
+					//si no es raiz
+				} else {
+					cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":ap" + strconv.Itoa(int(x)) + " -> " + nombreSig + "\n"
+				}
+
+				cadenaRep += cadApuntador
+
+				cadenaRep += retornarCadenaTreeFile(pathDisco, starAVD, starParticion, tamStruct, int(numApuntador), arrCarpetas, arrCarpetaDondeEmpezar+1, "")
+			}
+		}
+
+		//cuando esten en la ultima posicion
+		if x == len(subDirectorios)-1 {
+			//verifica que esten llenos
+			if subDirectorioEstaLleno(subDirectorios) {
+				//si tiene apuntador indirecto
+				if miAVD.AvdApIndirecto != 0 {
+
+					//obtengo el nombre hacia donde apunta mi directorio actual
+					nombreSig := retornarNombreHaciaDondeApunta(pathDisco, starAVD, starParticion, tamStruct, int(miAVD.AvdApIndirecto))
+					cadApuntador := ""
+
+					//si el directorio es la raiz
+					if strings.Compare(nombreDirectorio, "/") == 0 {
+						//si el directorio hacia donde apunta es la raiz
+						//.constains porque devuelve el nombre con el apuntador, ejemplo /3
+						if strings.Contains(nombreSig, "/") {
+							cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + "raiz" + strconv.Itoa(int(miAVD.AvdApIndirecto)) + "\n"
+
+							//si el directorio hacia donde apunta no es la raiz
+						} else {
+							cadApuntador += "raiz" + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + "\n"
+						}
+
+						//si no es el directorio raiz
+					} else {
+						cadApuntador += nombreDirectorio + strconv.Itoa(int(numStructLeer)) + ":apInd -> " + nombreSig + "\n"
+					}
+
+					cadenaRep += cadApuntador
+
+					cadenaRep += retornarCadenaTreeFile(pathDisco, starAVD, starParticion, tamStruct, int(miAVD.AvdApIndirecto), arrCarpetas, arrCarpetaDondeEmpezar, "")
+				}
+			}
+		}
+	}
+	return cadenaRep
+}
+
+//---------------------------------INICIO REPORTE TREE FILE ----------------------------------//
+
+//---------------------------------FIN REPORTE TREE FILE ----------------------------------//
+
 //---------------------------------REPORTE BITACORA ----------------------------------//
 
 func reporteBitacora(path string, starPart int64, pathGuardar string) {
@@ -9138,6 +9758,7 @@ func reporteBitacora(path string, starPart int64, pathGuardar string) {
 	}
 
 	createBIT(pathGuardar, cadRep)
+	fmt.Println("\nREPORTE BITACORA CREADO CORRECTAMENTE!")
 }
 
 func bitaRetornarSinEspaciosNulos1(arr [20]byte) string {
@@ -9185,7 +9806,7 @@ func crearDot(name string, cadena string) {
 }
 
 func createFile(p string) *os.File {
-	fmt.Println("crear")
+	//fmt.Println("crear")
 	f, err := os.Create(p)
 	if err != nil {
 		panic(err)
@@ -9194,13 +9815,13 @@ func createFile(p string) *os.File {
 }
 
 func writeFile(f *os.File, cadena string) {
-	fmt.Println("escribir")
+	//fmt.Println("escribir")
 	fmt.Fprintln(f, cadena)
 
 }
 
 func closeFile(f *os.File) {
-	fmt.Println("cerrar")
+	//fmt.Println("cerrar")
 	f.Close()
 }
 
