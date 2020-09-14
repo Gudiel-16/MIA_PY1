@@ -449,6 +449,8 @@ func logica() {
 			mkdirComando(i)
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "mkfile") == 0 {
 			mkfileComando(i)
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "rm") == 0 {
+			rmComando(i)
 		}
 	}
 }
@@ -2551,11 +2553,12 @@ func eliminarParticionPrimariaExtendida(path string, name string) {
 	misParticiones[posicionParticion] = particionNew
 
 	fmt.Println("\nDELETE PRIMARIA O EXTENDIDA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("	Nombre: ", name)
+	/*fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
 	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Star: ", misParticiones[1].Start, " Tipo: ", string(misParticiones[1].TipoParticion))
 	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Star: ", misParticiones[2].Start, " Tipo: ", string(misParticiones[2].TipoParticion))
 	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Star: ", misParticiones[3].Start, " Tipo: ", string(misParticiones[3].TipoParticion))
-
+	*/
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se elimino una particion se elimino de 'misPartiiones'
 	//entonces 'misParticiones' tiene las actuales, con la que se acaba de liminar
@@ -2786,9 +2789,10 @@ func eliminarParticionLogica(path string, name string) {
 	}
 
 	fmt.Println("\nDELETE LOGICA:")
-	for i := 0; i < len(misParticionesLogicas); i++ {
+	fmt.Println("	Nombre: ", name)
+	/*for i := 0; i < len(misParticionesLogicas); i++ {
 		fmt.Println("	arr pos ", i, " Tamanio : ", misParticionesLogicas[i].Tamanio, " Star: ", misParticionesLogicas[i].Start, " Next: ", misParticionesLogicas[i].Next, " Tipo: ", string(misParticionesLogicas[i].TipoParticion))
-	}
+	}*/
 
 	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
 	//cuando se elimina una particion logica se elimina de 'misParticionesPrimarias'
@@ -3234,12 +3238,13 @@ func addEspacioEnPrimariaExtendida(path string, name string, unit string, add in
 		}
 	}
 
-	fmt.Println("\nSE ADD O DELETE ESPACIO EN PRIMARIA O EXTENDIDA:")
-	fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
+	fmt.Println("\nSE AGREGO O QUITO ESPACIO EN PRIMARIA O EXTENDIDA:")
+	fmt.Println("	Nombre:", name)
+	/*fmt.Println("	arr pos 0 Tamanio : ", misParticiones[0].Tamanio, " Star: ", misParticiones[0].Start, " Tipo: ", string(misParticiones[0].TipoParticion))
 	fmt.Println("	arr pos 1 Tamanio : ", misParticiones[1].Tamanio, " Star: ", misParticiones[1].Start, " Tipo: ", string(misParticiones[1].TipoParticion))
 	fmt.Println("	arr pos 2 Tamanio : ", misParticiones[2].Tamanio, " Star: ", misParticiones[2].Start, " Tipo: ", string(misParticiones[2].TipoParticion))
 	fmt.Println("	arr pos 3 Tamanio : ", misParticiones[3].Tamanio, " Star: ", misParticiones[3].Start, " Tipo: ", string(misParticiones[3].TipoParticion))
-
+	*/
 	//las particiones actuales en el disco se encuentran en 'm.particiones'
 	//cuando se modifica el tamanio de una nueva particion se modifica en 'misPartiiones'
 	//entonces 'misParticiones' tiene las anteriores, y la que se modifico ahora
@@ -3718,10 +3723,11 @@ func addEspacioEnLogica(path string, name string, unit string, add int64) {
 		}
 	}
 
-	fmt.Println("\nADD O DELETE LOGICA:")
-	for i := 0; i < len(misParticionesLogicas); i++ {
+	fmt.Println("\nSE AGREGO O QUITO ESPACIO EN LOGICA:")
+	fmt.Println("	Nombre:", name)
+	/*for i := 0; i < len(misParticionesLogicas); i++ {
 		fmt.Println("	arr pos ", i, " Tamanio : ", misParticionesLogicas[i].Tamanio, " Star: ", misParticionesLogicas[i].Start, " Next: ", misParticionesLogicas[i].Next, " Tipo: ", string(misParticionesLogicas[i].TipoParticion))
-	}
+	}*/
 
 	//las particiones logicas actuales se encuentran en 'misParticiones[posicionExtendida].ParticionesLogicas'
 	//cuando se crea una nueva particion logica se agregan a 'misParticionesLogicas'
@@ -4724,7 +4730,7 @@ func mkdirComando(index int) {
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "p") == 0 {
 			if strings.Compare(listaComandos[i-1], "-") == 0 { // validar si esta de esta forma -name->
-
+				p = true
 			} else {
 				fmt.Println("\n[ ERROR: comando 'MKDIR' -> 'P' ]")
 			}
@@ -4737,51 +4743,70 @@ func mkdirComando(index int) {
 func operacionMkdir(id string, pathCarpetas string, p bool) {
 	pathDisco := retornarPathDeParticionDadoID(id)
 	nameParticion := retornarNameDeParticionDadoID(id)
-	//tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
-	starParticion := retornarStarParticion(pathDisco, nameParticion)
 
-	//Abrimos/creamos un archivo.
-	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
-	defer file.Close()
-	if err != nil { //validar que no sea nulo.
-		log.Fatal(err)
+	if strings.Compare(pathDisco, "NAC") != 0 {
+		//tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
+		starParticion := retornarStarParticion(pathDisco, nameParticion)
+
+		//Abrimos/creamos un archivo.
+		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+		defer file.Close()
+		if err != nil { //validar que no sea nulo.
+			log.Fatal(err)
+		}
+
+		file.Seek(starParticion, 0)
+
+		//Declaramos variable de tipo mbr
+		miSB := SuperBoot{}
+
+		//Obtenemos el tamanio del mbr
+		var size int = int(unsafe.Sizeof(miSB))
+
+		//Lee la cantidad de <size> bytes del archivo
+		data := leerBytesFdisk(file, size)
+
+		//Convierte la data en un buffer,necesario para decodificar binario
+		buffer := bytes.NewBuffer(data)
+
+		//Decodificamos y guardamos en la variable m
+		err = binary.Read(buffer, binary.BigEndian, &miSB)
+		if err != nil {
+			log.Fatal("binary.Read failed", err)
+		}
+
+		tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+		primerBitLibre := miSB.SbPrimerBitLibreArbolDirectorio
+
+		//guarda en un array todas las carptas por separado
+		nombresCarpetasComoArreglo := strings.Split(pathCarpetas, "/")
+		nombresCarpetasComoArreglo[0] = "/"
+
+		//inicio de AVD
+		starAVD := miSB.SbApInicioArbolDirectorio
+
+		if p {
+			//empiezo en uno, para no tomar en cuenta raiz
+			for i := 1; i < len(nombresCarpetasComoArreglo); i++ {
+				//paro en i+1, si viene 1, paro en 1+1=2
+				parar := i + 1
+				//creao array que mandare
+				arrMandar := make([]string, parar)
+				//recorro para copiar valores
+				for x := 0; x < parar; x++ {
+					arrMandar[x] = nombresCarpetasComoArreglo[x]
+				}
+				//obtengo el bitLibre
+				miBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+				//ingreso
+				avdRecursive(arrMandar, 0, pathDisco, starAVD, starParticion, int64(miBitLibre), tamStructAVD, 1)
+			}
+		} else {
+			avdRecursive(nombresCarpetasComoArreglo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
+		}
+	} else {
+		fmt.Println("\n[ ERROR: no existe id: ", id, " ]")
 	}
-
-	file.Seek(starParticion, 0)
-
-	//Declaramos variable de tipo mbr
-	miSB := SuperBoot{}
-
-	//Obtenemos el tamanio del mbr
-	var size int = int(unsafe.Sizeof(miSB))
-
-	//Lee la cantidad de <size> bytes del archivo
-	data := leerBytesFdisk(file, size)
-
-	//Convierte la data en un buffer,necesario para decodificar binario
-	buffer := bytes.NewBuffer(data)
-
-	//Decodificamos y guardamos en la variable m
-	err = binary.Read(buffer, binary.BigEndian, &miSB)
-	if err != nil {
-		log.Fatal("binary.Read failed", err)
-	}
-
-	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
-	primerBitLibre := miSB.SbPrimerBitLibreArbolDirectorio
-
-	//guarda en un array todas las carptas por separado
-	nombresCarpetasComoArreglo := strings.Split(pathCarpetas, "/")
-	nombresCarpetasComoArreglo[0] = "/"
-
-	//inicio de AVD
-	starAVD := miSB.SbApInicioArbolDirectorio
-	//nos posicionamos al inicio de AVD
-	//file.Seek(starAVD, 0)
-
-	//recorrerAVD(pathDisco, starParticion, primerBitLibre, file, err, nombresCarpetasComoArreglo, starAVD, 0, 1, tamStructAVD)
-	//fmt.Println(nombresCarpetasComoArreglo)
-	avdRecursive(nombresCarpetasComoArreglo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
 
 }
 
@@ -4915,7 +4940,7 @@ func avdRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco st
 					namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
 					if namesIguales {
 						//existe carpeta
-						fmt.Println("names iguales ")
+						//fmt.Println("names iguales ")
 						banderaInsert = avdRecursive(arrCarpetas, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
 						return true
 					} else {
@@ -5500,7 +5525,7 @@ func mkfileComando(index int) {
 			}
 		} else if strings.Compare(strings.ToLower(listaComandos[i]), "p") == 0 {
 			if strings.Compare(listaComandos[i-1], "-") == 0 { // validar si esta de esta forma -name->
-
+				p = true
 			} else {
 				fmt.Println("\n[ ERROR: comando 'MKFILE' -> 'P' ]")
 			}
@@ -5535,53 +5560,81 @@ func mkfileComando(index int) {
 func operacionMkfile(id string, pathArch string, p bool, sizeArch int, cont string) {
 	pathDisco := retornarPathDeParticionDadoID(id)
 	nameParticion := retornarNameDeParticionDadoID(id)
-	//tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
-	starParticion := retornarStarParticion(pathDisco, nameParticion)
 
-	//Abrimos/creamos un archivo.
-	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
-	defer file.Close()
-	if err != nil { //validar que no sea nulo.
-		log.Fatal(err)
+	if strings.Compare(pathDisco, "NAC") != 0 {
+		//tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
+		starParticion := retornarStarParticion(pathDisco, nameParticion)
+
+		//Abrimos/creamos un archivo.
+		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+		defer file.Close()
+		if err != nil { //validar que no sea nulo.
+			log.Fatal(err)
+		}
+
+		file.Seek(starParticion, 0)
+
+		//Declaramos variable de tipo mbr
+		miSB := SuperBoot{}
+
+		//Obtenemos el tamanio del mbr
+		var size int = int(unsafe.Sizeof(miSB))
+
+		//Lee la cantidad de <size> bytes del archivo
+		data := leerBytesFdisk(file, size)
+
+		//Convierte la data en un buffer,necesario para decodificar binario
+		buffer := bytes.NewBuffer(data)
+
+		//Decodificamos y guardamos en la variable m
+		err = binary.Read(buffer, binary.BigEndian, &miSB)
+		if err != nil {
+			log.Fatal("binary.Read failed", err)
+		}
+
+		tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+		primerBitLibre := miSB.SbPrimerBitLibreArbolDirectorio
+
+		//guarda en un array todas las carptas por separado
+		nombresCarpetasComoArreglo := strings.Split(pathArch, "/")
+		nombresCarpetasComoArreglo[0] = "/"
+
+		//inicio de AVD
+		starAVD := miSB.SbApInicioArbolDirectorio
+
+		//nombre Archivo
+		nombreArchivo := nombresCarpetasComoArreglo[len(nombresCarpetasComoArreglo)-1]
+
+		//fmt.Println(nombresCarpetasComoArreglo)
+
+		if p {
+			//empiezo en uno, para no tomar en cuenta raiz
+			// i < len(nombresCarpetasComoArreglo)-1 , para que no me tome en cuenta el archivo (ya que archivo estara en ultima posicion)
+			for i := 1; i < len(nombresCarpetasComoArreglo)-1; i++ {
+				//paro en i+1, si viene 1, paro en 1+1=2
+				parar := i + 1
+				//creao array que mandare
+				arrMandar := make([]string, parar)
+				//recorro para copiar valores
+				for x := 0; x < parar; x++ {
+					arrMandar[x] = nombresCarpetasComoArreglo[x]
+				}
+				//obtengo el bitLibre
+				miBitLibre := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+				//ingreso
+				avdRecursive(arrMandar, 0, pathDisco, starAVD, starParticion, int64(miBitLibre), tamStructAVD, 1)
+			}
+			miBitLibre2 := sbRetornarPrimerBitLibreAVD(pathDisco, starParticion)
+			recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, cont, 0, pathDisco, starAVD, starParticion, int64(miBitLibre2), tamStructAVD, 1)
+
+		} else {
+			//array carpetas, nombre archivo, donde empieza a recorrer, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, struc a leer
+			recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, cont, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
+		}
+
+	} else {
+		fmt.Println("\n[ ERROR: no existe id: ", id, " ]")
 	}
-
-	file.Seek(starParticion, 0)
-
-	//Declaramos variable de tipo mbr
-	miSB := SuperBoot{}
-
-	//Obtenemos el tamanio del mbr
-	var size int = int(unsafe.Sizeof(miSB))
-
-	//Lee la cantidad de <size> bytes del archivo
-	data := leerBytesFdisk(file, size)
-
-	//Convierte la data en un buffer,necesario para decodificar binario
-	buffer := bytes.NewBuffer(data)
-
-	//Decodificamos y guardamos en la variable m
-	err = binary.Read(buffer, binary.BigEndian, &miSB)
-	if err != nil {
-		log.Fatal("binary.Read failed", err)
-	}
-
-	tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
-	primerBitLibre := miSB.SbPrimerBitLibreArbolDirectorio
-
-	//guarda en un array todas las carptas por separado
-	nombresCarpetasComoArreglo := strings.Split(pathArch, "/")
-	nombresCarpetasComoArreglo[0] = "/"
-
-	//inicio de AVD
-	starAVD := miSB.SbApInicioArbolDirectorio
-
-	//nombre Archivo
-	nombreArchivo := nombresCarpetasComoArreglo[len(nombresCarpetasComoArreglo)-1]
-
-	//fmt.Println(nombresCarpetasComoArreglo)
-
-	//array carpetas, nombre archivo, donde empieza a recorrer, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, struc a leer
-	recursiveMkfile(nombresCarpetasComoArreglo, nombreArchivo, cont, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
 }
 
 func recursiveMkfile(arrCarpetas []string, nombreArchivo string, contArchivo string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
@@ -6771,6 +6824,539 @@ func sbAumentarRestarCantidadStructBloque(path string, starPart int64) {
 
 //--------------------------------------------------------FIN MKFILE--------------------------------------------------------//
 
+//--------------------------------------------------------INICIO RM--------------------------------------------------------//
+
+func rmComando(index int) {
+	path := ""
+	id := ""
+	rf := false
+
+	for i := index; i < len(listaComandos); i++ {
+
+		if strings.Compare(strings.ToLower(listaComandos[i]), "path") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				rt := listaComandos[i+2]        //ruta
+				if strings.Contains(rt, "\"") { //si la ruta que viene contiene comillas
+					rt2 := rt[1 : len(rt)-1] //le quitamos comillas a la ruta
+					path = rt2               //funcion que leera el archivo
+				} else { //sino tiene comillas manda la ruta normal
+					path = rt
+				}
+			} else {
+				fmt.Println("\n[ ERROR: comando 'RM' -> 'path' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "id") == 0 {
+			if (strings.Compare(listaComandos[i-1], "-") == 0) && (strings.Compare(listaComandos[i+1], "->") == 0) { // validar si esta de esta forma -name->
+				id = listaComandos[i+2]
+			} else {
+				fmt.Println("\n[ ERROR: comando 'RM' -> 'id' ]")
+			}
+		} else if strings.Compare(strings.ToLower(listaComandos[i]), "rf") == 0 {
+			if strings.Compare(listaComandos[i-1], "-") == 0 { // validar si esta de esta forma -name->
+				rf = true
+			} else {
+				fmt.Println("\n[ ERROR: comando 'RM' -> 'rf' ]")
+			}
+		}
+	}
+
+	operacionRM(path, id, rf)
+}
+
+func operacionRM(pathElim string, id string, rf bool) {
+
+	pathDisco := retornarPathDeParticionDadoID(id)
+	nameParticion := retornarNameDeParticionDadoID(id)
+
+	if strings.Compare(pathDisco, "NAC") != 0 {
+		//tamanioParticion := retornarTamanioParticion(pathDisco, nameParticion)
+		starParticion := retornarStarParticion(pathDisco, nameParticion)
+
+		//Abrimos/creamos un archivo.
+		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+		defer file.Close()
+		if err != nil { //validar que no sea nulo.
+			log.Fatal(err)
+		}
+
+		file.Seek(starParticion, 0)
+
+		//Declaramos variable de tipo mbr
+		miSB := SuperBoot{}
+
+		//Obtenemos el tamanio del mbr
+		var size int = int(unsafe.Sizeof(miSB))
+
+		//Lee la cantidad de <size> bytes del archivo
+		data := leerBytesFdisk(file, size)
+
+		//Convierte la data en un buffer,necesario para decodificar binario
+		buffer := bytes.NewBuffer(data)
+
+		//Decodificamos y guardamos en la variable m
+		err = binary.Read(buffer, binary.BigEndian, &miSB)
+		if err != nil {
+			log.Fatal("binary.Read failed", err)
+		}
+
+		tamStructAVD := miSB.SbTamanioEstructuraArbolDirectorio
+		primerBitLibre := miSB.SbPrimerBitLibreArbolDirectorio
+
+		//guarda en un array todas las carptas por separado
+		nombresCarpetasComoArreglo := strings.Split(pathElim, "/")
+		nombresCarpetasComoArreglo[0] = "/"
+
+		//inicio de AVD
+		starAVD := miSB.SbApInicioArbolDirectorio
+
+		rmRecursive(nombresCarpetasComoArreglo, 0, pathDisco, starAVD, starParticion, primerBitLibre, tamStructAVD, 1)
+
+	} else {
+		fmt.Println("\n[ ERROR: no existe id: ", id, " ]")
+	}
+
+}
+
+func rmRecursive(arrCarpetas []string, arrCarpetaDondeEmpezar int, pathDisco string, starAVD int64, starParticion int64, primerBitLibre int64, tamStruct int64, numStructLeer int) bool {
+	//fmt.Println("arr: ", arrCarpetaDondeEmpezar)
+
+	//cuando ya este en la ultima parara, es mi if de parada
+	if arrCarpetaDondeEmpezar != len(arrCarpetas)-1 {
+
+		//Abrimos
+		file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+		defer file.Close()
+		if err != nil { //validar que no sea nulo.
+			log.Fatal(err)
+		}
+
+		var inicioLectura int64 = 0
+
+		if numStructLeer == 1 {
+			inicioLectura = starAVD
+		} else {
+			//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+			//resto 1, seria 2-1 = 1
+			op1 := numStructLeer - 1
+			//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+			op2 := op1 * int(tamStruct)
+			//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+			inicioLectura = starAVD + int64(op2) + 1
+		}
+
+		file.Seek(inicioLectura, 0)
+
+		//leemos struct actual
+		miAVD := ArbolVirtualDirectorio{}
+		data2 := leerBytesFdisk(file, int(tamStruct))
+
+		//Convierte la data en un buffer,necesario para decodificar binario
+		buffer2 := bytes.NewBuffer(data2)
+
+		//Decodificamos y guardamos en la variable m
+		err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+		if err != nil {
+			log.Fatal("binary.Read failed", err)
+		}
+
+		subDirectorios := miAVD.AvdArraySubDirectorios
+
+		//crear detalle directorio
+		if arrCarpetaDondeEmpezar == len(arrCarpetas)-2 {
+			//fmt.Println("ELIMINAR en: ", arrCarpetas[arrCarpetaDondeEmpezar], " con apuntador: ", numStructLeer)
+			carpOArch := arrCarpetas[arrCarpetaDondeEmpezar+1]
+			if strings.Contains(carpOArch, ".") {
+				//fmt.Println("Eliminar Archivo")
+				eliminarCarpetaArchivo(pathDisco, starParticion, starAVD, tamStruct, numStructLeer, false, arrCarpetas[arrCarpetaDondeEmpezar+1])
+			} else {
+				//fmt.Println("Eliminar Carpeta")
+				eliminarCarpetaArchivo(pathDisco, starParticion, starAVD, tamStruct, numStructLeer, true, arrCarpetas[arrCarpetaDondeEmpezar+1])
+			}
+			//irADetalleDirectorio(pathDisco, starParticion, starAVD, tamStruct, numStructLeer, nombreArchivo, contArchivo)
+		}
+
+		//empezara en 0, luego en 1
+		for i := arrCarpetaDondeEmpezar; i < len(arrCarpetas)-1; i++ {
+
+			banderaBusc := false
+
+			for x := 0; x < len(subDirectorios); x++ {
+
+				bandera := false
+
+				if subDirectorios[x] != 0 {
+
+					//numero de apuntador
+					numApuntador := subDirectorios[x]
+					namesIguales := avdSonIgualesLosNombres(pathDisco, starAVD, tamStruct, numApuntador, arrCarpetas[arrCarpetaDondeEmpezar+1])
+					if namesIguales {
+						//existe carpeta
+						//fmt.Println(arrCarpetaDondeEmpezar, " entrar en: ", arrCarpetas[arrCarpetaDondeEmpezar+1])
+
+						banderaBusc = rmRecursive(arrCarpetas, arrCarpetaDondeEmpezar+1, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(numApuntador))
+						return true
+					}
+				}
+
+				if bandera {
+					return true
+				}
+
+				//cuando esten en la ultima posicion
+				if x == len(subDirectorios)-1 {
+					//si hay que crear apuntador indirecto
+					if miAVD.AvdApIndirecto != 0 {
+						//mando a leer de nuevo solo que con la estructura del apuntador indirecto y el bitLibre
+						//fmt.Println("entro en indirecto ")
+						structLeer := miAVD.AvdApIndirecto
+						banderaBusc = rmRecursive(arrCarpetas, arrCarpetaDondeEmpezar, pathDisco, starAVD, starParticion, primerBitLibre, tamStruct, int(structLeer))
+						return true
+					}
+				}
+			}
+
+			if banderaBusc {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func eliminarCarpetaArchivo(pathDisco string, starPart int64, starAVD int64, tamStruct int64, numStructLeer int, queEliminar bool, nomArchCarp string) {
+	//Abrimos
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	/*primerBitLibreDD := miSB.SbPrimerBitLibreDetalleDirectorio
+	starDD := miSB.SbApInicioDetalleDirectorio
+	tamStructDD := miSB.SbTamanioEstructuraDetalleDirectorio
+
+	starInodo := miSB.SbApInicioInodos
+	tamStructInodo := miSB.SbTamanioEstructuraInodo
+	primerBitLibreInodo := miSB.SbPrimerBitLibreInodos
+
+	starBloque := miSB.SbApInicioBloques
+	tamStructBloque := miSB.SbTamanioEstructuraBloques*/
+
+	//empiezo a leer el AVD
+	var inicioLectura int64 = 0
+
+	if numStructLeer == 1 {
+		inicioLectura = starAVD
+	} else {
+		//por ejemplo si tengo que ir a leer la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := numStructLeer - 1
+		//multiplico el valor por el tamanio de struct, seraia por ejem. 1*150
+		op2 := op1 * int(tamStruct)
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		inicioLectura = starAVD + int64(op2) + 1
+	}
+
+	file.Seek(inicioLectura, 0)
+
+	//leemos struct donde vayamos a guardar el detalle directorio o donde ya este
+	miAVD := ArbolVirtualDirectorio{}
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer2, binary.BigEndian, &miAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//eliminar carpeta
+	if queEliminar {
+		carpetasActuales := miAVD.AvdArraySubDirectorios
+		for i := 0; i < len(carpetasActuales); i++ {
+			actual := carpetasActuales[i]
+			if actual != 0 {
+				miDirecorio := retornarAVD(pathDisco, starPart, actual)
+				nombD := retornarNombreSinEspaciosNulos(miDirecorio.AvdNombreDirectorio)
+				if strings.Compare(strings.ToLower(nombD), strings.ToLower(nomArchCarp)) == 0 {
+					//elimino carpeta
+					eliminoCarpeta(pathDisco, starPart, int64(numStructLeer), int64(i))
+					fmt.Println("\nSE ELIMINO CARPETA CON NOMBRE: ", nomArchCarp)
+					break
+				}
+			}
+
+		}
+
+		//eliminar archivo
+	} else {
+		apDD := miAVD.AvdApDetalleDirectorio
+		if apDD != 0 {
+			miDD := retornarDD(pathDisco, starPart, apDD)
+			if apDD != 0 {
+				misArchivos := miDD.DdArrayArchivosTXT
+				for i := 0; i < len(misArchivos); i++ {
+					actual := misArchivos[i]
+					if actual.DdNombreArchivoTXT[0] != 0 {
+						nombreArc := retornarNombreSinEspaciosNulos(actual.DdNombreArchivoTXT)
+						if strings.Compare(strings.ToLower(nombreArc), strings.ToLower(nomArchCarp)) == 0 {
+							//elimino archivo
+							eliminoArchivo(pathDisco, starPart, int64(apDD), int64(i))
+							fmt.Println("\nSE ELIMINO ARCHIVO CON NOMBRE: ", nomArchCarp)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+}
+
+func retornarAVD(pathDisco string, starPart int64, bit int64) ArbolVirtualDirectorio {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStruct := miSB.SbTamanioEstructuraArbolDirectorio
+	starDD := miSB.SbApInicioArbolDirectorio
+
+	//leemos DD
+	var posDD int64 = 0
+	if bit == 1 {
+		posDD = starDD
+	} else {
+		//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := bit - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posDD = starDD + int64(op2) + 1
+
+	}
+
+	file.Seek(posDD, 0)
+
+	newStructDD := ArbolVirtualDirectorio{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer2, binary.BigEndian, &newStructDD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	//ya leido retornamos
+
+	return newStructDD
+}
+
+func eliminoCarpeta(pathDisco string, starPart int64, bit int64, pos int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStruct := miSB.SbTamanioEstructuraArbolDirectorio
+	star := miSB.SbApInicioArbolDirectorio
+
+	//leemos DD
+	var posAVD int64 = 0
+	if bit == 1 {
+		posAVD = star
+	} else {
+		//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := bit - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posAVD = star + int64(op2) + 1
+
+	}
+
+	file.Seek(posAVD, 0)
+
+	newStructAVD := ArbolVirtualDirectorio{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer2, binary.BigEndian, &newStructAVD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	carpetasActuales := newStructAVD.AvdArraySubDirectorios
+	carpetasActuales[pos] = 0
+
+	newStructAVD.AvdArraySubDirectorios = carpetasActuales
+
+	file.Seek(posAVD, 0)
+	//guardamos ya actualizado
+	s1 := &newStructAVD
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+
+}
+
+func eliminoArchivo(pathDisco string, starPart int64, bit int64, pos int64) {
+	//Abrimos/creamos un archivo.
+	file, err := os.OpenFile(pathDisco, os.O_RDWR, 0644)
+	defer file.Close()
+	if err != nil { //validar que no sea nulo.
+		log.Fatal(err)
+	}
+
+	file.Seek(starPart, 0)
+
+	//Declaramos variable de tipo mbr
+	miSB := SuperBoot{}
+
+	//Obtenemos el tamanio del mbr
+	var size int = int(unsafe.Sizeof(miSB))
+
+	//Lee la cantidad de <size> bytes del archivo
+	data := leerBytesFdisk(file, size)
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer := bytes.NewBuffer(data)
+
+	//Decodificamos y guardamos en la variable m
+	err = binary.Read(buffer, binary.BigEndian, &miSB)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	tamStruct := miSB.SbTamanioEstructuraDetalleDirectorio
+	starDD := miSB.SbApInicioDetalleDirectorio
+
+	//leemos DD
+	var posDD int64 = 0
+	if bit == 1 {
+		posDD = starDD
+	} else {
+		//por ejemplo si tengo que ir a ingresar en la posicion 2 de AVD
+		//resto 1, seria 2-1 = 1
+		op1 := bit - 1
+		//multiplico el valor por el tamanio de struct, seraia 1*150
+		op2 := op1 * tamStruct
+		//la posicion a leer sera, inicio 10000 + el tamanio de los struct anteriores
+		posDD = starDD + int64(op2) + 1
+
+	}
+
+	file.Seek(posDD, 0)
+
+	newStructDD := DetalleDirectorio{}
+
+	//Lee la cantidad de <size> bytes del archivo
+	data2 := leerBytesFdisk(file, int(tamStruct))
+
+	//Convierte la data en un buffer,necesario para decodificar binario
+	buffer2 := bytes.NewBuffer(data2)
+
+	//Decodificamos y guardamos
+	err = binary.Read(buffer2, binary.BigEndian, &newStructDD)
+	if err != nil {
+		log.Fatal("binary.Read failed", err)
+	}
+
+	misArchivos := newStructDD.DdArrayArchivosTXT
+	vacio := DetalleDirectorioArr{}
+	misArchivos[pos] = vacio
+	newStructDD.DdArrayArchivosTXT = misArchivos
+
+	file.Seek(posDD, 0)
+	//guardamos ya actualizado
+	s1 := &newStructDD
+	//Escribimos
+	var binario1 bytes.Buffer
+	binary.Write(&binario1, binary.BigEndian, s1)
+	escribirBytes(file, binario1.Bytes())
+}
+
+//--------------------------------------------------------FIN RM--------------------------------------------------------//
+
 //--------------------------------------------------------INICIO BITACORA--------------------------------------------------------//
 
 func bitacoraGuardarStruct(path string, starPart int64, tipoOperacion string, tipo int64, nombre string, contenido string) {
@@ -6935,15 +7521,18 @@ func operacionRep(name string, path string, id string, ruta string) {
 		}
 	}
 
+	//fmt.Println("ajuua")
 	pathDisco := retornarPathDeParticionDadoID(id)
+	//fmt.Println("ajeee")
 	namePart := retornarNameDeParticionDadoID(id)
-	starPart := retornarStarParticion(pathDisco, namePart)
+	//fmt.Println("ajaaa")
+	//fmt.Println(path)
 
 	//si existe particion
 	if strings.Compare(pathDisco, "NAC") != 0 {
+		starPart := retornarStarParticion(pathDisco, namePart)
 		if strings.Compare(strings.ToLower(name), "mbr") == 0 {
 			reporteMBR(pathDisco, path)
-			fmt.Println(pathDisco, " ", path)
 		} else if strings.Compare(strings.ToLower(name), "disk") == 0 {
 			reporteDisk(pathDisco, path)
 		} else if strings.Compare(strings.ToLower(name), "sb") == 0 {
@@ -7652,12 +8241,6 @@ func reporteDisk(path string, pathGuardar string) {
 
 	cadenaRep += "</tr>\n\n"
 
-	//EMPIEZA LOGICAS
-
-	cadenaRep += "<tr><td cellpadding='1'>\n\n"
-	cadenaRep += "<table bgcolor='orange' cellspacing='0'>\n\n"
-	cadenaRep += "<tr>\n"
-
 	posicionExtendida := -1
 	for i := 0; i < len(misParticiones); i++ {
 		actual := misParticiones[i]
@@ -7676,12 +8259,17 @@ func reporteDisk(path string, pathGuardar string) {
 		for i := 0; i < len(misParticionesLogicas); i++ {
 			if misParticionesLogicas[i].Tamanio != 0 {
 				hayLogicas = true
+				//EMPIEZA LOGICAS
+
+				cadenaRep += "<tr><td cellpadding='1'>\n\n"
+				cadenaRep += "<table bgcolor='orange' cellspacing='0'>\n\n"
+				cadenaRep += "<tr>\n"
 				break
 			}
 		}
 
 		if hayLogicas == false {
-			cadenaRep += "<td bgcolor='green'>LIBRE</td>\n"
+			cadenaRep += "<tr><td bgcolor='green'>LIBRE</td></tr>\n"
 		} else {
 			//recorro logicas
 			for i := 0; i < len(misParticionesLogicas); i++ {
@@ -7966,12 +8554,12 @@ func reporteDisk(path string, pathGuardar string) {
 					}
 				}
 			}
+			cadenaRep += "</tr>"
+			cadenaRep += "</table>\n"
+			cadenaRep += "</td></tr>\n\n"
 		}
-	}
 
-	cadenaRep += "</tr>"
-	cadenaRep += "</table>\n"
-	cadenaRep += "</td></tr>\n\n"
+	}
 
 	cadenaRep += "</table>\n\n"
 	cadenaRep += ">];\n\n"
